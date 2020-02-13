@@ -41,7 +41,7 @@ width="513" height="133"></p>
 
 If the install script finishes successfully, information will print to
 the MATLAB command window, and the directory above `+fnirs1` will be
-permanently added to the MATLAB search path so that fnirs1 commands
+permanently added to the MATLAB search path so that `fnirs1` commands
 will always be accessible. Try running,
 ```MATLAB
 >> help fnirs1.dlm
@@ -55,9 +55,11 @@ in MATLAB to verify that the installation worked correctly.
 The primary model fitting tool in our package is a function called
 `fnirs1.dlm`. This function takes as input a set of data files and
 returns a model summary object. Basic syntax is, 
+<pre>
 ```MATLAB
->> summary = fnirs1.dlm(data_files, Option, OptionValue);
+>> summary = fnirs1.dlm(data_files, <i>Option</i>, <i>OptionValue</i>);
 ```
+</pre>
 
 This function comes with sensible defaults so that the user needs only
 input locations of participant files to conduct an
