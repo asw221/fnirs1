@@ -65,7 +65,7 @@ This function comes with sensible defaults so that the user needs only
 input locations of participant files to conduct an
 analysis. `fnirs1.dlm` will make copies of the data into a temporary
 folder for analysis (marked with the current date and time), and will
-run analyses based on setup.dat files written for each channel within
+run analyses based on `setup.dat` files written for each channel within
 this folder. If the data files argument is left as an empty string,
 MATLAB will open a UI window and ask the user to select files by hand,
 ```MATLAB
@@ -100,7 +100,7 @@ include,
   
 <p align="center"><img src="vignette/ch-dirs-setup.png"
 alt="temporary directory structure"
-width="165" height="160"></p>
+width="206" height="200"></p>
 
 After parsing the user input and writing the temporary files,
 `fnirs1.dlm` fits Dr. Johnson’s dynamic linear models to the data from
@@ -169,7 +169,7 @@ processing. Users can run a shortened analysis, for example with the
 command,
 ```MATLAB
 >> summary = fnirs1.dlm(‘’, ‘DownSampleRate’, 10, ... 
-‘McmcControl’, fnirs1.mcmc_debug, ‘SpecificChannels’ = [1:4]);
+	‘McmcControl’, fnirs1.mcmc_debug, ‘SpecificChannels’ = [1:4]);
 ```
 
 If this command runs smoothly, then we suggest running full analyses
@@ -192,13 +192,13 @@ ans =
 
 ### Fitting group-level models
 
-A _*cautionary note*_: group-analyses are not completely stable
+A **_cautionary note_**: group-analyses are not completely stable
 yet. Save `fnirs1.dlm_summary` objects into `*.mat` files as soon as
 analyses are complete. MATLAB will sometimes hang or crash after
 running group-level analyses this way, but it’s _usually_ been several
 minutes after analyses are complete. I’m not sure what’s going on
 here: there may be a MATLAB internal bug to blame, and I will continue
-to look into it. (MathWorks emailed me to call it an ``unknown issue.'')
+to look into it. (MathWorks emailed me to call it an "unknown issue.")
 At the time of writing, I’m working primarily with MATLAB R2019a
 running on OSX 10.14. 
 
@@ -216,11 +216,12 @@ ans =
 
   4×1 cell array
     {'Box/BayesianDataAnalysis/ENMA_Data_Sep32019_N29/Participant1.mat'}
-	{'Box/BayesianDataAnalysis/ENMA_Data_Sep32019_N29/Participant2.mat'}
+    {'Box/BayesianDataAnalysis/ENMA_Data_Sep32019_N29/Participant2.mat'}
     {'Box/BayesianDataAnalysis/ENMA_Data_Sep32019_N29/Participant3.mat'}
     {'Box/BayesianDataAnalysis/ENMA_Data_Sep32019_N29/Participant4.mat'} 
 
->> summary = fnirs1.dlm(files, 'McmcControl', fnirs1.mcmc_debug, 'DownSampleRate', 10, 'SpecificChannels', [1:4]);
+>> summary = fnirs1.dlm(files, 'McmcControl', fnirs1.mcmc_debug, ...
+	'DownSampleRate', 10, 'SpecificChannels', [1:4]);
 >> summary
 
 summary = 
