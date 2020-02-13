@@ -3,8 +3,8 @@ function summaries = dlm(varargin)
 % DLM Fit Dr. Johnson's distributed lag-type model to fNIRs data.
 %
 % S = FNIRS1.DLM(INFILE) Fits the model specified by INFILE, which should
-% be of a particular layout (see documentation). Returns boolean S (true if
-% model was fit successfully)
+% be of a particular layout (see documentation). Returns an
+% fnirs1.dlm_summary object (or vector of objects)
 %
 
 summaries = [];
