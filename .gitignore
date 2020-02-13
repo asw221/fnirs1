@@ -1,0 +1,17 @@
+# Ignore the tests dir
++fnirs1/tests
+
+# Ignore compiled files
++fnirs1/*.mexmaci64
++fnirs1/include/*.o
+
+# Ignore Mac specific files
+.DS_Store
+*/.DS_Store
++fnirs1/*/.DS_Store
+
+# Ignore non-software files
+data
+example
+fNIRS_zip
+fNIRS1beta-0.3
