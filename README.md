@@ -28,7 +28,7 @@ execute,
 
 <p align="center"><img src="vignette/install-script-location.png"
 alt="install script location"
-width="200" height="199"></p> 
+width="250" height="249"></p> 
 
 
 Note that that script uses a variable called `FFTW_HOME` which may need
@@ -37,7 +37,7 @@ to be set before running `install.m`. On my MacBook, I have it set to
 
 <p align="center"><img src="vignette/fftw-home.png"
 alt="FFTW_HOME variable in install.m"
-width="513" height="133"></p> 
+width="641" height="166"></p> 
 
 If the install script finishes successfully, information will print to
 the MATLAB command window, and the directory above `+fnirs1` will be
@@ -74,7 +74,7 @@ MATLAB will open a UI window and ask the user to select files by hand,
 
 <p align="center"><img src="vignette/file-selection-window.png"
 alt="file selection window"
-width="438" height="240"></p>
+width="548" height="300"></p>
 
 For a single-subject analysis over all fNIRS channels, select only one
 participant file. This file should contain variables named `hbo`, `hbr`,
@@ -100,7 +100,7 @@ include,
   
 <p align="center"><img src="vignette/ch-dirs-setup.png"
 alt="temporary directory structure"
-width="206" height="200"></p>
+width="258" height="250"></p>
 
 After parsing the user input and writing the temporary files,
 `fnirs1.dlm` fits Dr. Johnson’s dynamic linear models to the data from
