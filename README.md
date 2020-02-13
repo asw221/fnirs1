@@ -9,10 +9,10 @@
 
 ##### Prerequisites
  - [FFTW3](http://www.fftw.org/) needs to be installed separately
-   - On OSX, this is quite easy with homebrew installed: from a
+   - On OSX, this is quite easy with `homebrew` installed: from a
    terminal, the command is simply `brew install fftw`
    - On Ubuntu, for example, open an admin terminal and run `sudo apt-get install fftw`
-   You need to know the location of a file called `fftw3.h`, which comes
+   - You need to know the location of a file called `fftw3.h`, which comes
    with FFTW3. On my MacBook, this file is found in
    `/usr/local/include/fftw3.h`
 
@@ -28,7 +28,7 @@ execute,
 
 <p align="center"><img src="vignette/install-script-location.png"
 alt="install script location"
-width="159" height="160"></p> 
+width="200" height="199"></p> 
 
 
 Note that that script uses a variable called `FFTW_HOME` which may need
@@ -37,7 +37,7 @@ to be set before running `install.m`. On my MacBook, I have it set to
 
 <p align="center"><img src="vignette/fftw-home.png"
 alt="FFTW_HOME variable in install.m"
-width="410" height="106"></p> 
+width="513" height="133"></p> 
 
 If the install script finishes successfully, information will print to
 the MATLAB command window, and the directory above `+fnirs1` will be
