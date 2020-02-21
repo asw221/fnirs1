@@ -1,10 +1,32 @@
 
 function summaries = dlm(varargin)
-% DLM Fit Dr. Johnson's distributed lag-type model to fNIRs data.
+% FNIRS1.DLM Fit Dr. Johnson's distributed lag-type models to fNIRs data
 %
 % S = FNIRS1.DLM(INFILE) Fits the model specified by INFILE, which should
-% be of a particular layout (see documentation). Returns an
-% fnirs1.dlm_summary object (or vector of objects)
+% be of a particular layout (see example setup.dat's). Returns an
+% fnirs1.dlm_summary object (or vector of objects). INFILE can also be 
+% given as a character cell array with paths to different setup files in 
+% each cell.
+%
+% S = FNIRS1.DLM(DataFiles, Option, OptionValue, ...) may be more
+% convenient for first use. In this case, DataFiles and all optional
+% arguments will be forwarded to fnirs1.specify_model, which will run
+% before model fitting begins. Note that the user must specify at least one
+% Option to invoke this usage, as when called with one argument, FNIRS1.DLM
+% assumes the setup.dat-based syntax above (with one exception noted 
+% below). One easy way to specify an optional argument without changing any
+% defaults is to call, for example,
+% >> S = FNIRS1.DLM(DataFiles, 'McmcControl', fnirs1.mcmc_control);
+%
+% Note that the call FNIRS1.DLM('') is ambiguous with no other arguments 
+% (does FNIRS1.DLM ask the user to select 'setup.dat' files? Or participant
+% data files?). In this case, FNIRS1.DLM will always resolve this conflict 
+% by asking the user to select participant data files, and passing these to
+% fnirs1.specify_model with other defaults. If you need help generating a
+% list of 'setup.dat' files, FNIRS1 provides the fnirs1.list_setup_files
+% utility.
+%
+% See also  fnirs1.specify_model, fnirs1.list_setup_files
 %
 
 summaries = [];
