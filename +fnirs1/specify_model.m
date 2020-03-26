@@ -153,6 +153,14 @@ for i = 1:N
             options.DownSamplerate(i), dataFiles{i});
     end
     
+    if (size(outcome, 1) ~= size(data.s, 1))
+        remove_folder_and_contents(outdir);
+        error('File %s timepoint mismatch:\n\tField ''%s'' has %d entries while ''s'' has %d', ...
+            basename(dataFiles{i}), options.OutComeType, size(outcome, 1), ...
+            size(data.s, 1));
+    end
+    
+    
     if (i == 1)
         nChannels = size(outcome, 2);
         setupFiles = cell(nChannels, 1);
