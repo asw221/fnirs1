@@ -13,10 +13,13 @@ if (fid ~= -1)
     [nrow, ncol] = size(M);
     for i = 1:nrow
         for j = 1:ncol
+            fprintf(fid, '%f', M(i, j));
             if (j == ncol)
-                fprintf(fid, '%f\n', M(i, j));
+                if (i ~= nrow)
+                    fprintf(fid, '\n');
+                end
             else
-                fprintf(fid, '%f ', M(i, j));
+                fprintf(fid, ' ');
             end
         end
         % fprintf(fid, '%s\n', sprintf('%f ', M(i, :)));

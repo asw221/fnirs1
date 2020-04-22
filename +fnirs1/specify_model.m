@@ -308,11 +308,11 @@ function success = writeSetupParticipant(fid, dataFile, designFile, ...
     samplingRate, downSampleRate)
 % Write subject-specific information to fid
 success = true;
-fprintf(fid, 'SUB_Replicates = %d\n', 1);
+fprintf(fid, '\n\nSUB_Replicates = %d\n', 1);
 fprintf(fid, 'SUB_Data = %s\n', basename(dataFile));
 fprintf(fid, 'SUB_Design = %s\n', basename(designFile));
 fprintf(fid, 'SUB_Freq = %d\n', samplingRate);
-fprintf(fid, 'SubSamp_Freq = %d\n\n', downSampleRate);
+fprintf(fid, 'SubSamp_Freq = %d', downSampleRate);
 end
 
 

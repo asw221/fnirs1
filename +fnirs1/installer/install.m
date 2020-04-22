@@ -53,3 +53,10 @@ end
 % Return to original directory
 cd ./+fnirs1/installer
 clear FFTW_HOME FILES INC LIB script
+
+
+% Print warning message if Statistics and Machine Learning Toolbox is not
+% available
+if (~fnirs1.sml_toolbox_available)
+    warning('Statistics and Machine Learning Toolbox may not be available');
+end

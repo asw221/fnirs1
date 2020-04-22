@@ -59,7 +59,8 @@ success = false(size(setupFiles));
 original_dir = pwd;
 for i = 1:length(setupFiles)
     if (exist(setupFiles{i}, 'file') ~= 2)
-        error('%s not found', setupFiles{i});
+        error('''%s'' not found or is not a valid model setup file', ...
+            setupFiles{i});
     end
     setupPath = fileparts(setupFiles{i});
     cd(setupPath);
