@@ -1,8 +1,6 @@
-
-#include <math.h>
 #include <stdlib.h>
+#include <math.h>
 #include <stdio.h>
-
 #include "randgen.h"
 
 extern double M;

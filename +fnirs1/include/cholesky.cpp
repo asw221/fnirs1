@@ -1,7 +1,6 @@
 #include <stdlib.h>
 #include <math.h>
 #include <stdio.h>
-
 #include "randgen.h"
 #include "cholesky.h"
 

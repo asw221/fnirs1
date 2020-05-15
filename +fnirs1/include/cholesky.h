@@ -1,7 +1,3 @@
-
-#ifndef _FNIRS1_CHOLESKY_
-#define _FNIRS1_CHOLESKY_
-
 int rwishart(double **r,double **,int,int,unsigned long *);
 int rmvnorm(double *result,double **A,int size_A,double *mean,unsigned long *seed,int flag);
 int rmvnorm2(double *result,double **A,int size_A,double *mean,unsigned long *seed,int flag);
@@ -26,7 +22,7 @@ int cholesky_backsub2vec(double *G,double *b,int n);
 int rmvt(double *result,double **A,int size_A,double df,double *mean,unsigned long *seed);
 int rmvtvec(double *result,double *A,int size_A,double df,double *mean,unsigned long *seed);
 
-#endif  // _FNIRS1_CHOLESKY_
+
 
 
 

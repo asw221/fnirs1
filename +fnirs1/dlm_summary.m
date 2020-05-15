@@ -44,7 +44,7 @@ classdef dlm_summary
             obj.StdErrors = [];
             
             obj.Decimals = 3;
-            obj.DescripPrintWidth = 25;
+            obj.DescripPrintWidth = 45;
             obj.EstimatePrintWidth = 10;
             obj.IntervalPrintWidth = 15;
             obj.FormatDescrip = sprintf('%%-%is', obj.DescripPrintWidth);
@@ -56,7 +56,7 @@ classdef dlm_summary
                 obj.DescripPrintWidth - 2, obj.EstimatePrintWidth - 1, ...
                 obj.EstimatePrintWidth - 2, obj.IntervalPrintWidth - 1);  
                 % -1's for the spaces
-            obj.PrintWidth = 60;  % not counting asterisks
+            obj.PrintWidth = 80;  % not counting asterisks
             obj.StarsCuttoffs = [0.95, 0.99, 0.999];
         end
         function obj = read_from_file(obj, file)

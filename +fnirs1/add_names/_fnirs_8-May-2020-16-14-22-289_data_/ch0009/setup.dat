@@ -1,0 +1,73 @@
+GROUP_Analysis = 1
+COVAR_Names = names.txt
+COVAR_Matrix = covar.dat
+SEED_Matrix = seed.dat
+
+POP_Stim = 3
+Include_temporal_derivative = 0
+
+MAX_ITER = 20
+BURN_IN = 10
+Expected_Knots = 15
+
+NSUBS = 10
+
+SUB_Replicates = 1
+SUB_Data = 3081_Chinese_Task1_hbo.txt
+SUB_Design = 3081_Chinese_Task1_stim.txt
+SUB_Freq = 50
+SubSamp_Freq = 10
+
+SUB_Replicates = 1
+SUB_Data = 3082_Chinese_Task1_hbo.txt
+SUB_Design = 3082_Chinese_Task1_stim.txt
+SUB_Freq = 50
+SubSamp_Freq = 10
+
+SUB_Replicates = 1
+SUB_Data = 3083_Chinese_Task1_hbo.txt
+SUB_Design = 3083_Chinese_Task1_stim.txt
+SUB_Freq = 50
+SubSamp_Freq = 10
+
+SUB_Replicates = 1
+SUB_Data = 3084_Chinese_Task1_hbo.txt
+SUB_Design = 3084_Chinese_Task1_stim.txt
+SUB_Freq = 50
+SubSamp_Freq = 10
+
+SUB_Replicates = 1
+SUB_Data = 3085_Chinese_Task1_hbo.txt
+SUB_Design = 3085_Chinese_Task1_stim.txt
+SUB_Freq = 50
+SubSamp_Freq = 10
+
+SUB_Replicates = 1
+SUB_Data = 3081_Chinese_Task2_hbo.txt
+SUB_Design = 3081_Chinese_Task2_stim.txt
+SUB_Freq = 50
+SubSamp_Freq = 10
+
+SUB_Replicates = 1
+SUB_Data = 3082_Chinese_Task2_hbo.txt
+SUB_Design = 3082_Chinese_Task2_stim.txt
+SUB_Freq = 50
+SubSamp_Freq = 10
+
+SUB_Replicates = 1
+SUB_Data = 3083_Chinese_Task2_hbo.txt
+SUB_Design = 3083_Chinese_Task2_stim.txt
+SUB_Freq = 50
+SubSamp_Freq = 10
+
+SUB_Replicates = 1
+SUB_Data = 3084_Chinese_Task2_hbo.txt
+SUB_Design = 3084_Chinese_Task2_stim.txt
+SUB_Freq = 50
+SubSamp_Freq = 10
+
+SUB_Replicates = 1
+SUB_Data = 3085_Chinese_Task2_hbo.txt
+SUB_Design = 3085_Chinese_Task2_stim.txt
+SUB_Freq = 50
+SubSamp_Freq = 10

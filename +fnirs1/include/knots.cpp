@@ -6,15 +6,14 @@
 //
 //
 
-#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
-
-#include "cholesky.h"
-#include "fNIRS.h"
+#include <math.h>
 #include "randgen.h"
+#include "cholesky.h"
+#include <time.h>
+#include "fNIRS.h"
 
 void draw_knot_locations(REP *rep,int sdegree,int *flag,unsigned long *seed)
 {
@@ -50,8 +49,8 @@ void draw_knot_locations(REP *rep,int sdegree,int *flag,unsigned long *seed)
     for (i=0;i<rep->dim_V[1];i++)
         eta[i] = rep->eta[i];
     
-           // attempt change of each interior knot in order
-    j = runiform_n(rep->nKnots-sdegree*2,seed) + sdegree;    
+           // attempt change of a random knot location
+        j = runiform_n(rep->nKnots-sdegree*2,seed) + sdegree;    
 
         knots[j] = rnorm(knots[j],rep->prop_sd[3],seed);  // propose knot location
         for (i = sdegree;i<rep->nKnots-sdegree;i++){
@@ -280,52 +279,32 @@ void birth(REP *rep,POP *pop,double *full_likelihood,unsigned long *seed) {
     (rep->dim_V[1])++;
     (rep->nKnots)++;
 
-    rep->eta = (double *)realloc(rep->eta,sizeof(double)*(rep->dim_V[1]));
-//    rep->eta = (double *)calloc(rep->dim_V[1]+1,sizeof(double));
-    for (i=0;i<rep->dim_V[1];i++)
+//    rep->eta = (double *)realloc(rep->eta,sizeof(double)*(rep->dim_V[1]));
+    free(rep->eta);
+    rep->eta = teta;
+ /*   for (i=0;i<rep->dim_V[1];i++)
         rep->eta[i] = teta[i];
-    free(teta);
+    free(teta);*/
     
-//    free(rep->knots);
-//    rep->knots = (double *)calloc(rep->nKnots+1,sizeof(double));
-    rep->knots = (double *)realloc(rep->knots,sizeof(double)*(rep->nKnots));
+    free(rep->knots);
+    rep->knots = tknots;
+/*    rep->knots = (double *)realloc(rep->knots,sizeof(double)*(rep->nKnots));
     for (i=0;i<rep->nKnots;i++)
         rep->knots[i] = tknots[i];
-    free(tknots);
+    free(tknots);*/
     
+    free(rep->V);
+    rep->V = VV;
     
+/*    rep->V = (double *)realloc(rep->V,rep->dim_V[0]*rep->dim_V[1]*sizeof(double));
     
-//    for (i=0;i<rep->dim_V[0];i++)
-//        free(rep->V[i]);
-    //      free(rep->V);
-    
-    //      rep->V = (double **)calloc(rep->dim_V[0],sizeof(double *));
-//    for (i=0;i<rep->dim_V[0];i++)
-        rep->V = (double *)realloc(rep->V,rep->dim_V[0]*rep->dim_V[1]*sizeof(double));
-//    rep->V[i] = (double *)calloc(rep->dim_V[1],sizeof(double));
-    
-    //           FILE *fouta; fouta = fopen("VVn.out","w");
     for (i=0;i<rep->dim_V[0];i++) {
         for (j=0;j<rep->dim_V[1];j++) {
             rep->V[i*rep->dim_V[1]+j] = VV[i*rep->dim_V[1]+j];
-            //                   fprintf(fouta,"%lf ",VV[i][j]);
         }
-        //              fprintf(fouta,"\n");
     }
-    //         fclose(fouta);
     
- //   for (i=0;i<rep->dim_V[0];i++)
- //       free(VV[i]);
-    free(VV);
-    
-//    for (i=0;i<rep->dim_V[0];i++)
-//        free(rep->J[i]);
-//    free(rep->J);
-    
-//    rep->J = (double **)calloc(rep->dim_V[0],sizeof(double *));
- //   for (i=0;i<rep->dim_V[0];i++)
- //       rep->J[i] = (double *)realloc(rep->J[i],rep->dim_V[1]*sizeof(double));
-//    rep->J[i] = (double *)calloc(rep->dim_V[1],sizeof(double));
+    free(VV);*/
     
     /* calculate Veta */
     
@@ -382,19 +361,21 @@ void death(double *death_rate,REP *rep,POP *pop,double *full_likelihood,int sdeg
     (rep->nKnots)--;
     (rep->dim_V[1])--;
     
-//    free(rep->eta);
-//    rep->eta = (double *)calloc(rep->dim_V[1],sizeof(double));
-    rep->eta = (double *)realloc(rep->eta,rep->dim_V[1]*sizeof(double));
+    free(rep->eta);
+    rep->eta = (double *)calloc(rep->dim_V[1],sizeof(double));
+    rep->eta = eta;
+/*    rep->eta = (double *)realloc(rep->eta,rep->dim_V[1]*sizeof(double));
     for (i=0;i<rep->dim_V[1];i++)
         rep->eta[i] = eta[i];
-    free(eta);
+    free(eta);*/
     
-//    free(rep->knots);
-//    rep->knots = (double *)calloc(rep->nKnots,sizeof(double));
-    rep->knots = (double *)realloc(rep->knots,rep->nKnots*sizeof(double));
+    free(rep->knots);
+    rep->knots = (double *)calloc(rep->nKnots,sizeof(double));
+    rep->knots = tknots;
+/*    rep->knots = (double *)realloc(rep->knots,rep->nKnots*sizeof(double));
     for (i=0;i<rep->nKnots;i++)
         rep->knots[i] = tknots[i];
-    free(tknots);
+    free(tknots);*/
     
     /* calculate Veta */
     
@@ -416,7 +397,7 @@ void death(double *death_rate,REP *rep,POP *pop,double *full_likelihood,int sdeg
 
 int knot_birth_death(REP *rep,POP *pop,const int sdegree,int iter,unsigned long *seed){
     
-    int i,j,k,aaa,dflag,max_knots = 200;
+    int i,j,k,aaa,dflag,max_knots = 76;
     double Birth_rate,prior_rate,T,full_likelihood,max,S;
     double Death_rate,*death_rate,position,*partial_likelihood;
 
@@ -426,10 +407,17 @@ int knot_birth_death(REP *rep,POP *pop,const int sdegree,int iter,unsigned long 
     
     // set simulation time
 
-    prior_rate = rgamma(pop->knots,1,seed); 
-    Birth_rate = prior_rate;
-    T= 1./Birth_rate;
-
+//    prior_rate = rep->nKnots;
+    prior_rate = rgamma(pop->knots,1,seed);
+    Birth_rate = 10.;
+ /*   if (iter > 1000)
+        T= 1./Birth_rate;
+    else*/
+    if (iter == 0)
+        T = 2.5;
+    else
+        T = 1.;//1./10.;
+        
     calculate_residuals(rep,rep->P);
     
     // calculate likelihood;
@@ -491,12 +479,13 @@ void knot_death_rate(double *death_rate,REP *rep,double *partial_likelihood,doub
                         int sdegree)
 {
     int i,nKnots;
-    
+    double lratio;
     nKnots = rep->nKnots-2*sdegree;
     
     if (nKnots > 0) {
+        lratio = log(Birth_rate/prior_rate) - full_likelihood;
         for (i=0;i<nKnots;i++) {
-            death_rate[i] = log(Birth_rate/prior_rate) + partial_likelihood[i] - full_likelihood; //+ ldens[i] - prior_ldens[i] + log(rep->dim_V[0]-1);
+            death_rate[i] = lratio + partial_likelihood[i]; //+ ldens[i] - prior_ldens[i] + log(rep->dim_V[0]-1);
 //            printf("%g %g %g\n",partial_likelihood[i],full_likelihood,death_rate[i]);
         }
     }

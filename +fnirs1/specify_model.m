@@ -38,6 +38,12 @@ function outdir = specify_model(dataFiles, varargin)
 %       FILES. Default is empty for single-subject analyses, or a vector of
 %       1's for group-level analyses
 %
+%   'GroupCovariateNames' - (cellstr; optional)
+%
+%   'GroupData' - (table; optional)
+%
+%   'GroupFormula' - (char; optional unless 'GroupData' is provided)
+%
 %   'McmcControl' - (fnirs1.mcmc_control) can be any valid
 %       fnirs1.mcmc_control object. Default is the same as returned by
 %       fnris1.mcmc_control
@@ -55,8 +61,12 @@ function outdir = specify_model(dataFiles, varargin)
 % 
 
 
-options = struct('DownSampleRate', 1, ...
+options = struct(...
+    'DownSampleRate', 1, ...
     'GroupCovariates', [], ...
+    'GroupCovariateNames', {''}, ...
+    'GroupData', table(), ...
+    'GroupFormula', '', ...
     'McmcControl', fnirs1.mcmc_control, ...
     'OutcomeType', 'hbo', ...
     'SpecificChannels', [] ...
@@ -75,12 +85,16 @@ for pair = reshape(varargin, 2, [])
         error('%s is not a recognized parameter', nm);
     end
 end
+if (~ischar(options.GroupFormula))
+    options.GroupFormula = char(options.GroupFormula);
+end
 if (~ischar(options.OutcomeType))
     options.OutcomeType = char(options.OutcomeType);
 end
 if (~isempty(options.SpecificChannels))
     options.SpecificChannels = sort(unique(floor(options.SpecificChannels)));
 end
+
 
 
 % Check dataFiles argument
@@ -98,6 +112,9 @@ end
 % Adjust set parameters
 N = length(dataFiles);
 groupAnalysis = N > 1;
+data = load(dataFiles{1});
+M = size(data.s, 2);        % Number of task conditions
+
 
 %  - options.DownSampleRate
 if (numel(options.DownSampleRate) == 1)
@@ -109,12 +126,39 @@ end
 
 %  - options.GroupCovariates
 if (groupAnalysis)
-    if (isempty(options.GroupCovariates))
-        options.GroupCovariates = ones(N, 1);
-    elseif (size(options.GroupCovariates, 1) ~= N)
-        error("'GroupCovariates' must have the same number of rows " + ...
-            "as there are participants/data files");
+    % Process GroupFormula and GroupData if given. GroupData requires a
+    % GroupFormula
+    if (isempty(options.GroupFormula) && ~isempty(options.GroupData))
+        error('''GroupData'' parameter must be accompanied by a ''GroupFormula'' parameter');
+    elseif (~isempty(options.GroupFormula) && isempty(options.GroupData))
+        warning('''GroupFormula'' will be ignored without ''GroupData''');
     end
+    if (~isempty(options.GroupData))
+        options.GroupData = fnirs1.expand_table_conditions(...
+            options.GroupData, M, 'Cond');
+        if (options.McmcControl.includeDerivatives)
+            warning('Temporal Derivatives option not yet set up');
+%             options.GroupData = fnirs1.expand_table_conditions(...
+%                 options.GroupData, 3, 'TempDeriv');
+        end
+        design = fnirs1.mixed_effects_design(options.GroupData, ...
+            options.GroupFormula);
+        design = design.reformat_base_condition;
+        options.GroupCovariates = designMatrix(design, 'Fixed');
+        options.GroupCovariateNames = design.CoefficientNames;
+    end
+end
+if (isempty(options.GroupCovariates))
+    % options.GroupCovariates = ones(N, 1);
+    options.GroupCovariateNames = {'(Intercept)'};
+    options.GroupCovariates = ones(N * M, 1);
+    % options.GroupCovariates = eye(N);
+    % diagBlocks = repmat({ones(M, 1)}, 1, N);
+    % options.GroupCovariates = blkdiag(diagBlocks{:});
+elseif (size(options.GroupCovariates, 1) ~= N * M)
+    error("'GroupCovariates' must have number of rows equal to " + ...
+        "the number of participants/data files times the " + ...
+        "number of columns in the task design");
 end
 
 % Setup output directory and write data 
@@ -134,6 +178,10 @@ for i = 1:N
     [~, participantFileBaseName] = fileparts(dataFiles{i});
     try
         data = load(dataFiles{i});
+        if (size(data.s, 2) ~= M)
+            error('Mismatch in number of task conditions: ''%s'' and ''%s''', ...
+                dataFiles{1}, dataFiles{i});
+        end
     catch ME
         remove_folder_and_contents(outdir);
         error(ME.identifier, '%s', ME.message);
@@ -187,10 +235,15 @@ for i = 1:N
             writeSetupPreamble(setupFid, N, data.s, options.McmcControl);
             fclose(setupFid);
             
-            % Write seed.dat & covar.dat
+            % Write seed.dat, names.txt & covar.dat
             if (~write_seed(chdir))
                 remove_file_and_contents(outdir);
                 error('Could not write seed.dat');
+            end
+            if (~write_covariate_names(options.GroupCovariateNames, ...
+                    chdir))
+                remove_file_and_contents(outdir);
+                error('Could not write names.txt');
             end
             if (~write_matrix(options.GroupCovariates, ...
                     fullfile(chdir, 'covar.dat')))
@@ -249,13 +302,26 @@ end
 
 
 function checkParameterPair(pair)
-% Ensure input parameters in pair (cell) contain appropriate types
+% Ensure input parameters in pair (cell) contain appropriate types    
+% 'GroupCovariateNames', {''}, ...
+%     'GroupData', table(), ...
+%     'GroupFormula', '', ...
 nm = pair{1};
 if (strcmp(nm, 'DownSampleRate') && ~isnumeric(pair{2}))
     error('''DownSampleRate'' should be a numeric parameter');
 end
 if (strcmp(nm, 'GroupCovariates') && ~isnumeric(pair{2}))
     error('''GroupCovariates'' should be a numeric parameter');
+end
+if (strcmp(nm, 'GroupCovariateNames') && ...
+        ~(iscellstr(pair{2}) || isstring(pair{2})))
+    error('''GroupCovariateNames'' should be a cell array of strings');
+end
+if (strcmp(nm, 'GroupData') && ~istable(pair{2}))
+    error('''GroupData'' should be a table object');
+end
+if (strcmp(nm, 'GroupFormula') && ~(ischar(pair{2}) || isstring(pair{2})))
+    error('''GroupFormula'' should be a character string');
 end
 if (strcmp(nm, 'McmcControl') && ~isa(pair{2}, 'fnirs1.mcmc_control'))
     error('''McmcControl'' should be an fnirs1.mcmc_control object');
@@ -308,11 +374,11 @@ function success = writeSetupParticipant(fid, dataFile, designFile, ...
     samplingRate, downSampleRate)
 % Write subject-specific information to fid
 success = true;
-fprintf(fid, '\n\nSUB_Replicates = %d\n', 1);
+fprintf(fid, '\nSUB_Replicates = %d\n', 1);
 fprintf(fid, 'SUB_Data = %s\n', basename(dataFile));
 fprintf(fid, 'SUB_Design = %s\n', basename(designFile));
 fprintf(fid, 'SUB_Freq = %d\n', samplingRate);
-fprintf(fid, 'SubSamp_Freq = %d', downSampleRate);
+fprintf(fid, 'SubSamp_Freq = %d\n', downSampleRate);
 end
 
 
@@ -322,18 +388,19 @@ function success = writeSetupPreamble(fid, N, design, mcmcControl)
 % Write group-constant information to fid
 success = true;
 fprintf(fid, 'GROUP_Analysis = %d\n', N > 1);
+fprintf(fid, 'COVAR_Names = names.txt\n');
 fprintf(fid, 'COVAR_Matrix = covar.dat\n');
 fprintf(fid, 'SEED_Matrix = seed.dat\n\n');
 
 fprintf(fid, 'POP_Stim = %d\n', size(design, 2));
-fprintf(fid, 'Include_temporal_derivatives = %d\n\n', ...
+fprintf(fid, 'Include_temporal_derivative = %d\n\n', ...
     mcmcControl.includeDerivatives);
 
 fprintf(fid, 'MAX_ITER = %d\n', mcmcControl.maxIterations);
 fprintf(fid, 'BURN_IN = %d\n', mcmcControl.burnin);
 fprintf(fid, 'Expected_Knots = %d\n\n', mcmcControl.expectedKnots);
 
-fprintf(fid, 'NSUBS = %d\n\n', N);
+fprintf(fid, 'NSUBS = %d\n', N);
 end
 
 

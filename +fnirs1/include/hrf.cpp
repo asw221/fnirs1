@@ -7,13 +7,12 @@
  *
  */
 
-#include <fftw3.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-
-// #include "/usr/local/include/fftw3.h"
-
+#include "/usr/local/include/fftw3.h"
+#include "fNIRS.h"
+#include "randgen.h"
 
 double *DCT_basis(int N,double T,int period,int *K)
 {
@@ -52,15 +51,15 @@ void proj(double *out,double *v,double *u,int length)
         out[i] = num*u[i];
 }
 
-double **canonical_HRF(int T,double freq,int *dim_HRF,int type)
+double **canonical_HRF(int T,double freq,int *dim_HRF,double m,double var,int type)
 {
     int num;
-    double a1 = 6;
-    double b1 = 1;
+    double a1 = m*m/var;
+    double b1 = m/var;
     double a2 = 16;
     double b2 = 1;
     double c = 1./6.;
-    double x,**HRF;
+    double x,**HRF,tmp;
     double const1,const2;
     
     const1 = pow(b1,a1)/tgamma(a1);
@@ -68,7 +67,12 @@ double **canonical_HRF(int T,double freq,int *dim_HRF,int type)
     
     num = T*freq;
     dim_HRF[0] = num;
-    switch (type) {
+    dim_HRF[1] = type+1;
+    HRF = (double **)calloc(num,sizeof(double *));
+    for (int i=0;i<num;i++)
+        HRF[i] =(double *)calloc(dim_HRF[1],sizeof(double));
+     
+/*    switch (type) {
         case 0:
             dim_HRF[1] = 1;
             HRF = (double **)calloc(num,sizeof(double *));
@@ -87,7 +91,7 @@ double **canonical_HRF(int T,double freq,int *dim_HRF,int type)
             for (int i=0;i<num;i++)
                 HRF[i] =(double *)calloc(dim_HRF[1],sizeof(double));
             break;
-    }
+    }*/
     for (int i=0;i<num;i++) {
         x = (double)i/(double)freq;
         switch (type) {
@@ -96,23 +100,33 @@ double **canonical_HRF(int T,double freq,int *dim_HRF,int type)
                 break;
             case 1:
                 HRF[i][0] = const1*pow(x,a1-1)*exp(-b1*x) - const2*pow(x,a2-1)*exp(-b2*x);
-                HRF[i][1] = const1*pow(x,a1-1)*exp(-b1*x)*( (a1-1)/x - b1  ) - const2*pow(b2,a2)*pow(x,a2-1)*exp(-b2*x)*((a2-1)/x - b2);
+               if (i==0)
+                    HRF[i][1] = 0;
+                else
+                 HRF[i][1] = const1*pow(x,a1-1)*exp(-b1*x)*( (a1-1)/x - b1  ) - const2*pow(b2,a2)*pow(x,a2-1)*exp(-b2*x)*((a2-1)/x - b2);
                 break;
             case 2: default:
                 HRF[i][0] = const1*pow(x,a1-1)*exp(-b1*x) - const2*pow(x,a2-1)*exp(-b2*x);
-                HRF[i][1] = const1*pow(x,a1-1)*exp(-b1*x)*( (a1-1)/x - b1  ) - const2*pow(b2,a2)*pow(x,a2-1)*exp(-b2*x)*((a2-1)/x - b2);
-                HRF[i][2] = pow(x,a1-1)/tgamma(a1)*exp(-b1*x)*(a1*pow(b1,a1-1) - x*pow(b1,a1) );
+                HRF[i][0] = const1*pow(x,a1-1)*exp(-b1*x) - const2*pow(x,a2-1)*exp(-b2*x);
+                if (i==0) {
+                    HRF[i][1] = 0;
+                    HRF[i][2] = 0;
+                }
+                else {
+                    HRF[i][1] = const1*pow(x,a1-1)*exp(-b1*x)*( (a1-1)/x - b1  ) - const2*pow(b2,a2)*pow(x,a2-1)*exp(-b2*x)*((a2-1)/x - b2);
+                    HRF[i][2] = pow(x,a1-1)/tgamma(a1)*exp(-b1*x)*(a1*pow(b1,a1-1) - x*pow(b1,a1) );
+                }
                 break;
         }
     }
-    HRF[0][1] = 0;
+//    HRF[0][1] = 0;
     double *out = (double *)calloc(num,sizeof(double));
     double *v = (double *)calloc(num,sizeof(double));
     double *u = (double *)calloc(num,sizeof(double));
     
     switch (type) {
         case 0:
-            double tmp;
+            tmp = 0;
             for (int i=0;i<num;i++)
                 tmp += HRF[i][0]*HRF[i][0];
             tmp = sqrt(tmp);
@@ -264,11 +278,29 @@ double *convolve(double **design,double **hrf,int *dim_design,int *dim_hrf)
         
         }
     }
-    fftw_free(XYZ1);
-    fftw_free(XYZ2);
+    free(XYZ1);
+    free(XYZ2);
     fftw_destroy_plan(setup_fwd1);
     fftw_destroy_plan(setup_fwd2);
     fftw_destroy_plan(setup_inv);
-    
+    fftw_cleanup();
     return X;
 }
+
+
+/*double dnorm(double *res,double *prec,int dim)
+{
+    void Ax(double *b,double *A,double *x,const int nrow,const int ncol); 
+    double dotProd(double *x,double *y,const int dim);
+    double *b,y;
+      
+    b = (double *)calloc(dim,sizeof(double));
+       
+    Ax(b,prec,res,(const int)dim,(const int)dim);
+    y = -0.5*dotProd(res,b,(const int)dim);
+    
+    free(b);
+    return y;
+}
+*/
+

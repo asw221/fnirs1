@@ -68,8 +68,12 @@ for i = 1:length(setupFiles)
         remove_folder_and_contents(fullfile(setupPath, 'log'));
     end
     try 
-        fnirs1.fitDlm(basename(setupFiles{i}));
-        success(i) = true;
+        % fnirs1.fitDlm(basename(setupFiles{i}));
+        cmd = sprintf('%s %s', ...
+            fullfile(fnirs1.home, 'include', 'fnirsdlm'), ...
+            basename(setupFiles{i}));
+        status = system(cmd, '-echo');
+        success(i) = ~logical(status);
     catch ME
         warning(ME.identifier, 'fnirs1.dlm: caught error: %s', ME.message);
     end

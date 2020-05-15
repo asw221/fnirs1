@@ -1,0 +1,5 @@
+ SKIP = 2501;rpC = as.matrix(read.table("rhodraws.dat",skip=SKIP))
+ par(mfrow=c(2,2));for (i in 1:4) plot(rpC[,i],type="l");ess(rpC)
+ BBC = as.matrix(read.table("Bdraws.dat",skip=SKIP))
+ EEC = as.matrix(read.table("Edraws.dat",skip=SKIP))
+ GGC = as.matrix(read.table("Gdraws.dat",skip=SKIP))

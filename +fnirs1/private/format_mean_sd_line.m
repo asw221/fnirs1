@@ -4,7 +4,12 @@ function theta = format_mean_sd_line(line)
 % Return empty vector if the line contains no relevant information, and
 % return a struct with 'Estimate' and 'SE' fields otherwise
 theta = [];
-params = sscanf(line, 'mean = %f\tsd = %f');
+% params = sscanf(line, 'mean = %f\tsd = %f');
+params = regexp(line, '\d+\.?\d*', 'match');
+for i = 1:numel(params)
+    params{i} = sscanf(params{i}, '%f');
+end
+params = [params{:}];
 if (~isempty(params))
     theta = struct('Estimate', params(1), 'SE', params(2));
 end

@@ -1,7 +1,3 @@
-
-#ifndef _FNIRS1_RANDGEN_
-#define _FNIRS1_RANDGEN_
-
 double kiss(unsigned long *);
 double gasdev(unsigned long *);
 int runiform_n(int,unsigned long *);
@@ -28,7 +24,6 @@ unsigned long int runiform_long_n(unsigned long int,unsigned long *);
 double rGIG(double,double ,double ,unsigned long *);
 int trunc_rpois(double *CDF,int lower,int upper,unsigned long *seed); 
 
-#endif  // _FNIRS1_RANDGEN_
 
 
 

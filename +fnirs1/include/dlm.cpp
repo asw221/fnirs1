@@ -2,16 +2,29 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
+#include <time.h>
 #include "fNIRS.h"
 #include "cholesky.h"
 #include "randgen.h"
 
-extern int max_dimX;
 extern int maxP;
 extern sDLM *dlmStruc;
-extern double md1,md2;
-extern int mP;
-double max_ll;
+
+double dotProd(double *x,double *y,const int dim)
+{
+    double dp = 0;
+    
+    for (int i=0;i<dim;i++)
+        dp += x[i]*y[i];
+    
+    return dp;
+}
+
+void Ax(double *B,double *A,double *x,const int nrow,const int ncol)
+{
+    for (int i=0;i<nrow;i++)
+        B[i] = dotProd(&A[i*ncol],x,ncol);
+}
 
 void cA(double *C,const double c,double *A,const int dim)
 {
@@ -31,6 +44,20 @@ void transpose(double *At,double *A,const int nrow,const int ncol)
         for (int j=0;j<ncol;j++)
             At[j*nrow+i] = A[i*ncol+j];
 }
+
+void AxB(double *C,double *A,double *B,const int nrowA,const int mid,const int ncolB)
+{
+    int nrow,rB,rA;
+    
+    for (int k=0,rB=0;k<mid;k++,rB+=ncolB) {
+        //int rB = k*ncolB;
+        for (int i=0,nrow=0,rA=0;i<nrowA;i++,nrow+=ncolB,rA+=mid) {
+            //int rA += mid;
+            for (int j=0;j<ncolB;j++)
+                C[nrow+j] += A[rA+k]*B[rB+j];
+        }
+    }
+}
  
 void addtodouble(double *A,double *B,const int dim,const int sign)
 {
@@ -47,13 +74,14 @@ void adddoubles(double *C,double *A,double *B,const int dim,const int sign)
 double dlm_forward_filter_draw(REP *rep,sDLM *dlmStruc,const int Pmax, const int P, const double beta,const double delta,double *W)
 {
     double n0,S0;
-    double Q,*A,*CC;
+    double Q,*A,*CC,*R;
     double f,e;
     double tden(double x,double mean,double var,double df);
     
     A = (double *)calloc(P,sizeof(double));
     CC = (double *)calloc(P*P,sizeof(double));
-        
+    R = (double *)calloc(P*P,sizeof(double));
+      
     for (int i=0;i<P*P;i++)
             dlmStruc[P-1].C[i] = 0;
     for (int i=0;i<P;i++)
@@ -74,27 +102,28 @@ double dlm_forward_filter_draw(REP *rep,sDLM *dlmStruc,const int Pmax, const int
     
     double ll = 0;
     for (int t=P;t<rep->dim_X[0];t++) {
-        for (int i=0;i<P;i++)
-            dlmStruc[t].a[i] = dlmStruc[t-1].m[i];
+//        for (int i=0;i<P;i++)
+//            dlmStruc[t].a[i] = dlmStruc[t-1].m[i];
              
         f = 0;
         for (int i=0;i<P;i++)
-            f += W[t*P+i]*dlmStruc[t].a[i];
+            f += W[t*P+i]*dlmStruc[t-1].m[i];
+//            f += W[t*P+i]*dlmStruc[t].a[i];
     
         
         for (int i=0;i<P;i++)
             for (int j=0;j<P;j++) 
-                dlmStruc[t].R[i*P+j] = dlmStruc[t-1].C[i*P+j]/delta;
+                R[i*P+j] = dlmStruc[t-1].C[i*P+j]/delta;
  
         Q = dlmStruc[t-1].S;
         for (int i=0;i<P;i++)
             for (int j=0;j<P;j++)
-                Q += W[t*P+i]*dlmStruc[t].R[i*P+j]*W[t*P+j];
+                Q += W[t*P+i]*R[i*P+j]*W[t*P+j];
         
         for (int i=0;i<P;i++) {
             A[i] = 0;
             for (int j=0;j<P;j++)
-                A[i] += dlmStruc[t].R[i*P+j]*W[t*P+j];
+                A[i] += R[i*P+j]*W[t*P+j];
             A[i] /= Q; 
         }                
                            
@@ -110,12 +139,13 @@ double dlm_forward_filter_draw(REP *rep,sDLM *dlmStruc,const int Pmax, const int
         double tmp = dlmStruc[t].S/dlmStruc[t-1].S;
         for (int i=0;i<P;i++) {
             for (int j=0;j<P;j++) {
-                dlmStruc[t].C[i*P+j] = tmp*(dlmStruc[t].R[i*P+j] - A[i]*A[j]*Q);
+                dlmStruc[t].C[i*P+j] = tmp*(R[i*P+j] - A[i]*A[j]*Q);
             }
         }
                 
         for (int i=0;i<P;i++)
-            dlmStruc[t].m[i] = dlmStruc[t].a[i] + A[i]*e;
+            dlmStruc[t].m[i] = dlmStruc[t-1].m[i] + A[i]*e;
+ //           dlmStruc[t].m[i] = dlmStruc[t].a[i] + A[i]*e;
  
         transpose(CC,dlmStruc[t].C,(const int)P,(const int)P);
         addtodouble(CC,dlmStruc[t].C,(const int)P*P,1);
@@ -124,29 +154,27 @@ double dlm_forward_filter_draw(REP *rep,sDLM *dlmStruc,const int Pmax, const int
     }
     free(CC);
     free(A);
+    free(R);
     return ll;
 }
 
 void dlm_forward_filter(REP *rep,sDLM *dlmStruc)
 {
     int P;
-    double n0,S0,*CC;
+    double n0,S0,*CC,*R;
     double Q,*A;
     double f,e;
  
     P = rep->P;  
     A = (double *)calloc(P,sizeof(double));
     CC = (double *)calloc(P*P,sizeof(double));
+    R = (double *)calloc(P*P,sizeof(double));
         
-    for (int i=0;i<max_dimX;i++) {
-        dlmStruc[i].S = 0;
-        dlmStruc[i].d = 0;
-        dlmStruc[i].n = 0;
-    }
     for (int i=0;i<P*P;i++)
             dlmStruc[P-1].C[i] = 0;
     for (int i=0;i<P;i++)
             dlmStruc[P-1].C[i*P+i] = 1;
+ 
     S0 = 1;
     n0 = 1;            
     S0 = S0/n0;
@@ -160,27 +188,28 @@ void dlm_forward_filter(REP *rep,sDLM *dlmStruc)
     
     
     for (int t=P;t<rep->dim_X[0];t++) {
-        for (int i=0;i<P;i++)
-            dlmStruc[t].a[i] = dlmStruc[t-1].m[i];
+//        for (int i=0;i<P;i++)
+//            dlmStruc[t].a[i] = dlmStruc[t-1].m[i];
              
         f = 0;
         for (int i=0;i<P;i++)
-            f += rep->W[t*P+i]*dlmStruc[t].a[i];
+            f += rep->W[t*P+i]*dlmStruc[t-1].m[i];
+//            f += rep->W[t*P+i]*dlmStruc[t].a[i];
     
         
         for (int i=0;i<P;i++)
             for (int j=0;j<P;j++) 
-                dlmStruc[t].R[i*P+j] = dlmStruc[t-1].C[i*P+j]/rep->df_delta1;
+                R[i*P+j] = dlmStruc[t-1].C[i*P+j]/rep->df_delta1;
  
         Q = dlmStruc[t-1].S;
         for (int i=0;i<P;i++)
             for (int j=0;j<P;j++)
-                Q += rep->W[t*P+i]*dlmStruc[t].R[i*P+j]*rep->W[t*P+j];
+                Q += rep->W[t*P+i]*R[i*P+j]*rep->W[t*P+j];
                 
         for (int i=0;i<P;i++) {
             A[i] = 0;
             for (int j=0;j<P;j++)
-                A[i] += dlmStruc[t].R[i*P+j]*rep->W[t*P+j];
+                A[i] += R[i*P+j]*rep->W[t*P+j];
             A[i] /= Q; 
         }                
                            
@@ -193,12 +222,13 @@ void dlm_forward_filter(REP *rep,sDLM *dlmStruc)
         double tmp = dlmStruc[t].S/dlmStruc[t-1].S;
         for (int i=0;i<P;i++) {
             for (int j=0;j<P;j++) {
-                dlmStruc[t].C[i*P+j] = tmp*(dlmStruc[t].R[i*P+j] - A[i]*A[j]*Q);
+                dlmStruc[t].C[i*P+j] = tmp*(R[i*P+j] - A[i]*A[j]*Q);
             }
         }
                 
         for (int i=0;i<P;i++)
-            dlmStruc[t].m[i] = dlmStruc[t].a[i] + A[i]*e;
+            dlmStruc[t].m[i] = dlmStruc[t-1].m[i] + A[i]*e;
+//           dlmStruc[t].m[i] = dlmStruc[t].a[i] + A[i]*e;
 
         transpose(CC,dlmStruc[t].C,(const int)P,(const int)P);
         addtodouble(CC,dlmStruc[t].C,(const int)P*P,1);
@@ -207,6 +237,7 @@ void dlm_forward_filter(REP *rep,sDLM *dlmStruc)
     }
     free(CC);
     free(A);
+    free(R);
 }
 
 void dlm_backward_sampling(REP *rep,sDLM *dlmStruc,const int P,unsigned long *seed)
@@ -219,7 +250,8 @@ void dlm_backward_sampling(REP *rep,sDLM *dlmStruc,const int P,unsigned long *se
     for (int t=rep->dim_X[0]-2;t>=P;t--) {
         
         for (int i=0;i<P;i++)
-            m[i] = dlmStruc[t].m[i] + rep->df_delta1*(rep->delta[(t+1)*P + i] - dlmStruc[t+1].a[i]);
+            m[i] = dlmStruc[t].m[i] + rep->df_delta1*(rep->delta[(t+1)*P + i] - dlmStruc[t].m[i]);
+//            m[i] = dlmStruc[t].m[i] + rep->df_delta1*(rep->delta[(t+1)*P + i] - dlmStruc[t+1].a[i]);
 
 
         // compute mean
@@ -240,14 +272,19 @@ void dlm_backward_sampling(REP *rep,sDLM *dlmStruc,const int P,unsigned long *se
         }
         
         // draw new prec[t]
+//        double Y = rep->df_delta2*rep->d_Y[t+1];
+//        Y += rgamma(0.5*(1-rep->df_delta2)*dlmStruc[t].n,0.5*dlmStruc[t].d,seed);
+//        if (fabs(Y) < 1.2) 
+//            rep->d_Y[t] = Y;
         rep->d_Y[t] = rep->df_delta2*rep->d_Y[t+1];
         rep->d_Y[t] += rgamma(0.5*(1-rep->df_delta2)*dlmStruc[t].n,0.5*dlmStruc[t].d,seed);
+ 
     }
     free(m);
     free(Var);
 }
 
-void DLMtst(REP *rep,int iter,dlm_tst_flag flag,unsigned long *seed) {
+void DLMtst(REP *rep,sDLM *dlmStruc,dlm_tst_flag flag,unsigned long *seed) {
     double n,d;
     double old_loglik,new_loglik;
     double f,e,*W;
@@ -258,8 +295,7 @@ void DLMtst(REP *rep,int iter,dlm_tst_flag flag,unsigned long *seed) {
     int P = rep->P;
     W = rep->W;
 
- //   if (flag == fdelta1)
-        calculate_res3(rep);
+    calculate_res3(rep);
 
     int prop_P;
     double new_logprop,old_logprop;
@@ -379,9 +415,9 @@ void DLMtst(REP *rep,int iter,dlm_tst_flag flag,unsigned long *seed) {
             new_log_prior = old_log_prior = 0;
             break;        
         case fdelta2: 
-            new_log_prior = (0.8*(0.2*rep->dim_X[0]) - 1)*log(prop_beta) + (0.2*(0.2*rep->dim_X[0]) - 1)*log(1.-prop_beta);
-            old_log_prior = (0.8*(0.2*rep->dim_X[0]) - 1)*log(rep->df_delta2) + (0.2*(0.2*rep->dim_X[0]) - 1)*log(1.-rep->df_delta2);
-//             new_log_prior = old_log_prior = 0;           
+//            new_log_prior = (0.8*(0.2*rep->dim_X[0]) - 1)*log(prop_beta) + (0.2*(0.2*rep->dim_X[0]) - 1)*log(1.-prop_beta);
+//            old_log_prior = (0.8*(0.2*rep->dim_X[0]) - 1)*log(rep->df_delta2) + (0.2*(0.2*rep->dim_X[0]) - 1)*log(1.-rep->df_delta2);
+              new_log_prior = old_log_prior = 0;           
             break;
         case fP: default:
             new_log_prior = old_log_prior = 0;
@@ -401,7 +437,7 @@ void DLMtst(REP *rep,int iter,dlm_tst_flag flag,unsigned long *seed) {
     calW(rep->W,rep->Y,rep->Xbeta,rep->Veta,(const int)rep->dim_W[0],(const int)rep->dim_W[1],rep->P);
 }
 
-void DLM(REP *rep,unsigned long *seed) {
+void sampleDLM(REP *rep,sDLM *dlmStruc,unsigned long *seed) {
     double *Var;
     void calWdelta(double *Ax,double *A,double *x,const int nrow,const int ncol);
     void calculate_residuals(REP *rep,int P);
@@ -438,5 +474,14 @@ void DLM(REP *rep,unsigned long *seed) {
     
     calWdelta(rep->Wdelta,rep->W,rep->delta,(const int)rep->dim_W[0],(const int)rep->dim_W[1]);
     calculate_residuals(rep,P);
+}
+
+void DLM(REP *rep,int iter,unsigned long *seed) {
+    DLMtst(rep,rep->dlmStruc,fdelta1,seed);
+    DLMtst(rep,rep->dlmStruc,fdelta2,seed);
+    DLMtst(rep,rep->dlmStruc,fP,seed);
+    
+    sampleDLM(rep,rep->dlmStruc,seed);
+
 }
 

@@ -15,9 +15,7 @@ if (fid ~= -1)
         for j = 1:ncol
             fprintf(fid, '%f', M(i, j));
             if (j == ncol)
-                if (i ~= nrow)
-                    fprintf(fid, '\n');
-                end
+                fprintf(fid, '\n');
             else
                 fprintf(fid, ' ');
             end

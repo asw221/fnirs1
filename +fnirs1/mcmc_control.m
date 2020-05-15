@@ -7,10 +7,10 @@ classdef mcmc_control
     %   not to include the HRF temporal derivatives in model output.
     %
     % Example usage:
-    %   maxIterations = 1e4;        % default = 20,000
+    %   maxIterations = 1e4;        % default = 3,000
     %   includeDerivatives = true;  % default = false
     %   expectedKnots = 12;         % default = 15
-    %   burnin = 4e3;               % default = (maxIterations / 2)
+    %   burnin = 4e3;               % default = (maxIterations / 3)
     %   ctrl = fnirs1.mcmc_control(maxIterations, includeDerivataves, expectedKnots, burnin);
     %   disp(ctrl.maxIterations)
     %
@@ -29,7 +29,7 @@ methods
         % Construct an mcmc_control object; ensure any inputs are valid
         
         % defaults
-        obj.maxIterations = 2e4;
+        obj.maxIterations = 3e3;
         obj.expectedKnots = 15;
         obj.includeDerivatives = false;
         if (nargin >= 1)
@@ -39,8 +39,8 @@ methods
                 error("MCMC max iterations must be a positive integer");
             end
         end
-        % burnin default: maxIterations / 2
-        obj.burnin = fix(obj.maxIterations / 2);
+        % burnin default: maxIterations / 3
+        obj.burnin = fix(obj.maxIterations / 3);
         if (nargin >= 2)
             if (isscalar(varargin{2}))
                 obj.includeDerivatives = logical(varargin{2});

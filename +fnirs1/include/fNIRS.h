@@ -1,36 +1,36 @@
-
-#ifndef _FNIRS1_FNIRS_
-#define _FNIRS1_FNIRS_
-
-
 enum dlm_tst_flag {fdelta1,fdelta2,fP};
+
 
 typedef struct dlm{
     double S;
     double n;
     double d;
-    double *a;
     double *m;
     double *C;
-    double *R;
 } sDLM;
 
 typedef struct replication{
     char *dataname;
     char *designname;
-    char *motionname;
+    double **design;
+    int N;
+    int    dim_design[2];
+    double mhrf;
     double K;
     double *pi_Y;
     double pi_eta;
     double pi_delta;
-    int *Ne;
+//    int *Ne;
     int *dim_X;
     int *dim_W;
     int *dim_V;
     int P;
     double df_delta1;
     double df_delta2;
+    int     *dY;
     double *d_Y;
+    int     d_Ycnt;
+    double pi;
     double *md_Y;
     double *sd_Y;
     double *Y;
@@ -40,8 +40,9 @@ typedef struct replication{
     double *eta;
     double preceta;
     double *delta;
-    double *m;
+//    double *m;
     double precdelta;
+    double *beta;
     double *Xbeta;
     double *mXbeta;
     double *Wdelta;
@@ -52,12 +53,13 @@ typedef struct replication{
     double *V;
     double *Veta;
     double *mVeta;
-    double *lambda;
-    double *H;
-    double *J;
-    double *Hbeta;
-    double *Jeta;
-      
+//    double *lambda;
+//    double *H;
+//    double *J;
+//    double *Hbeta;
+//    double *Jeta;
+    sDLM *dlmStruc;
+    
     double *mdelta;
     double *mdelta2; 
     double *std_res;
@@ -66,7 +68,7 @@ typedef struct replication{
     double *mean_fit;
     double md1;
     double md2;
-    int    *tableP;
+//    int    *tableP;
     double *residuals;
     double *residuals1;
     double *residuals2;
@@ -81,6 +83,7 @@ typedef struct replication{
     int nKnots;
     double *knots;
     
+    FILE *fout_beta;
     FILE *fout_eta;
     FILE *fout_dlm;
     FILE *fout_res;
@@ -105,9 +108,9 @@ typedef struct subdata{
     double subsampled_freq;
     REP *rep;
     double *beta;  // subject level effects  (Nb*Ns)
-    double *conv_beta;  // converted subject level effects
+//    double *conv_beta;  // converted subject level effects
 //    double precbeta;  // event level r.e. precision, one for each stimulus
-    double *conv_precbeta;  // r.e. precision
+//    double *conv_precbeta;  // r.e. precision
     int *dim_X;
     double *X; // (Nb*Ns)x(Ncov*Nb*Ns)  covariate information for each subject
     
@@ -118,6 +121,7 @@ typedef struct subdata{
 typedef struct popdata{
     int GRP;
     int N_SUBS;
+    int No_replicates;
     int Ncov; // number of covariates, defaults to 1 for intercept
     int Nb;     // number of basis in the HRF
     int Ns;      // number of stimuli (or events)
@@ -126,12 +130,10 @@ typedef struct popdata{
     double ED;
     SUB *sub;
     double *beta;  // population level effects, (Ncov*Nb*Ns)
+    double *re_rep_prec; //replicate level random effects
     double *re_prec; // sub level random effects, (Ns)x(Ns) diagonal
-    
+    char **covnames;
     FILE *fout_reprec;
+    FILE *fout_re_rep_prec;
     FILE *fout_beta;
 } POP;
-
-
-#endif  // _FNIRS1_FNIRS_
-
