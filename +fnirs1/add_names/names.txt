@@ -1,9 +1,0 @@
-Intercept
-Task
-LWID
-Age
-Condition_2
-Condition_3
-Task:Condition_2
-Task:Condition_3
-

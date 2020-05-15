@@ -1,8 +1,0 @@
-(Intercept)
-LWIDraw
-Age
-Task_2
-Condition_2
-Condition_3
-Task_2:Condition_2
-Task_2:Condition_3

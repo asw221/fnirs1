@@ -1,6 +1,5 @@
 # Ignore the tests dirs/files
 +fnirs1/tests
-+fnris1/add_names
 +fnirs1/test_*
 +fnirs1/include/old
 
