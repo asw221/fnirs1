@@ -76,18 +76,21 @@ classdef dlm_summary
             % start from zero)
             for i = 1:length(lines)
                 lines{i} = erase(lines{i}, ': Parameter Summary for regression of');
-                lines{i} = strrep(lines{i}, 'Temporal Derivative', 'TmpDrv');
+                lines{i} = strrep(lines{i}, 'Temporal Derivative', 'TempDeriv');
+                lines{i} = strrep(lines{i}, 'Pop ', 'Population ');
+                lines{i} = strrep(lines{i}, ...
+                    'Population Level Parameters:', 'Population Effect');
                 
-                stimNo = sscanf(lines{i}, 'Stim  %i');
-                if ~isempty(stimNo)
-                    lines{i} = strrep(lines{i}, sprintf('Stim  %i', stimNo), ...
-                        sprintf('Stim %i', stimNo + 1));
+                condNo = sscanf(lines{i}, 'Cond_%i');
+                if ~isempty(condNo)
+                    lines{i} = strrep(lines{i}, sprintf('Cond_%i', condNo), ...
+                        sprintf('Cond_%i', condNo));
                 end
                 
-                stimNo = sscanf(lines{i}, 'Stim = %i');
-                if ~isempty(stimNo)
-                    lines{i} = strrep(lines{i}, sprintf('Stim = %i', stimNo), ...
-                        sprintf('Stim %i', stimNo + 1));
+                condNo = sscanf(lines{i}, 'Cond = %i');
+                if ~isempty(condNo)
+                    lines{i} = strrep(lines{i}, sprintf('Cond = %i', condNo), ...
+                        sprintf('Cond_%i', condNo + 1));
                 end
                 
                 covarNo = sscanf(lines{i}, '%*s Covariate %i');
@@ -112,7 +115,6 @@ classdef dlm_summary
             %        V% Cred.Int. = (L, U)*
             interval_lines = [false; mean_lines(1:(end - 1))];
             subtitle_lines = [mean_lines(2:end); false];
-            title_lines = ~(mean_lines | interval_lines | subtitle_lines);
             
             % Set object parameter values
             obj.Descriptions = cell(P, 1);
@@ -130,6 +132,9 @@ classdef dlm_summary
             if (~isempty(beginningOfSubjectBlockIndex))
                 groupAnalysisBlock(beginningOfSubjectBlockIndex(1):end) = false;
             end
+            
+            subtitle_lines(groupAnalysisBlock) = false;
+            title_lines = ~(mean_lines | interval_lines | subtitle_lines);
             
             % Loop over lines and extract relevant information.
             % (!) This block may need to be edited if Parameter_Estimates.log
@@ -161,6 +166,9 @@ classdef dlm_summary
                             end
                         end
                     end
+                    if ~isempty(blockTitle)
+                        blockTitle = strrep(blockTitle, ':', '');
+                    end
                 elseif (subtitle_lines(i))
                     % Format parameter descriptions given block-titles,
                     % titles, and subtitles
@@ -175,6 +183,15 @@ classdef dlm_summary
                     theta = format_mean_sd_line(lines{i});
                     obj.Estimates(count) = theta.Estimate;
                     obj.StdErrors(count) = theta.SE;
+                    if (~isempty(theta.Name))
+                        obj.Descriptions{count} = strrep(...
+                            sprintf('%s %s: %s', blockTitle, title, theta.Name), ...
+                            ' :', ':');
+                        if (contains(obj.Descriptions{count}, 'Population, '))
+                            obj.Descriptions{count} = sprintf('Population %s', ...
+                                erase(obj.Descriptions{count}, 'Population, '));
+                        end
+                    end
                 elseif (interval_lines(i))
                     ntrvl = format_interval_line(lines{i});
                     obj.Intervals(count, :) = ntrvl.Interval';

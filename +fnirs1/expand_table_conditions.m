@@ -15,7 +15,7 @@ if (nargin > 2)
     if (ischar(varargin{1}) || isstring(varargin{1}))
         conditionName = varargin{1};
     else
-        error('fnirs1.expand_table_conditions: cname argument must be character');
+        error('fnirs1.expand_table_conditions: condition name argument must be character');
     end    
 end
 N = size(tbl, 1);

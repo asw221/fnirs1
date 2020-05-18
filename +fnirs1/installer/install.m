@@ -91,7 +91,7 @@ cd ../../
 % the new path
 if (~any(strcmp(pwd, regexp(path, pathsep, 'split'))))
     addpath(pwd)
-    savepath
+    savepath(userpath)
 end
 % Return to original directory
 cd ./+fnirs1/installer
