@@ -26,6 +26,20 @@ function summaries = dlm(varargin)
 % list of 'setup.dat' files, FNIRS1 provides the fnirs1.list_setup_files
 % utility.
 %
+% Example usage:
+%   % Single subject or group analysis, debug-length MCMC chains
+%   fit = fnirs1.dlm('', 'DownSampleRate', 10, ...
+%      'SpecificChannels', 1:2, ...
+%      'McmcControl', fnirs1.mcmc_debug)
+%
+%   % Group analysis: select multiple files at prompt,
+%   % Existing demographic information contained in a table called 'Demo'
+%   fit = fnirs1.dlm('', 'DownSampleRate', 10, ...
+%      'SpecificChannels', 1:2, ...
+%      'GrouplData', Demo, 'GroupFormula', 'ID ~ Task * Cond', ...
+%      'McmcControl', fnirs1.mcmc_control)
+%   
+%
 % See also  fnirs1.specify_model, fnirs1.list_setup_files
 %
 

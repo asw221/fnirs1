@@ -6,7 +6,7 @@
 %   >> run install.m
 
 FFTW_HOME = '/usr/local/include';
-FFTW_LIB = '/usr/local/lib';
+FFTW_LIB  = '/usr/local/lib';
 % User may need to edit 
 % FFTW_HOME:
 %   - From a terminal, the command ls [value-of-FFTW_HOME]

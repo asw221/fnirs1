@@ -40,9 +40,14 @@ function outdir = specify_model(dataFiles, varargin)
 %
 %   'GroupCovariateNames' - (cellstr; optional)
 %
-%   'GroupData' - (table; optional)
+%   'GroupData' - (table; optional) demographic information for group
+%       analyses
 %
-%   'GroupFormula' - (char; optional unless 'GroupData' is provided)
+%   'GroupFormula' - (char; optional unless 'GroupData' is provided) this
+%       will look something like, 'y ~ age + sex'. While the formula
+%       requires a numeric outcome variable (like 'y' above), this can be
+%       any variable in 'GroupData' and will not actually be referred to in
+%       model fitting
 %
 %   'McmcControl' - (fnirs1.mcmc_control) can be any valid
 %       fnirs1.mcmc_control object. Default is the same as returned by
@@ -57,7 +62,10 @@ function outdir = specify_model(dataFiles, varargin)
 %       subsets of channels. Default includes all channels in the analyses
 %       and does not subset
 %
-% See also  fnirs1.dlm, fnirs1.mcmc_control, fnirs1.mcmc_debug, load
+% Example usage:
+%
+% See also
+% fnirs1.dlm, fnirs1.mcmc_control, fnirs1.mcmc_debug, load
 % 
 
 
@@ -136,11 +144,6 @@ if (groupAnalysis)
     if (~isempty(options.GroupData))
         options.GroupData = fnirs1.expand_table_conditions(...
             options.GroupData, M, 'Cond');
-        if (options.McmcControl.includeDerivatives)
-            warning('Temporal Derivatives option not yet set up');
-%             options.GroupData = fnirs1.expand_table_conditions(...
-%                 options.GroupData, 3, 'TempDeriv');
-        end
         design = fnirs1.mixed_effects_design(options.GroupData, ...
             options.GroupFormula);
         design = design.reformat_base_condition;
@@ -149,16 +152,29 @@ if (groupAnalysis)
     end
 end
 if (isempty(options.GroupCovariates))
-    % options.GroupCovariates = ones(N, 1);
     options.GroupCovariateNames = {'(Intercept)'};
     options.GroupCovariates = ones(N * M, 1);
     % options.GroupCovariates = eye(N);
-    % diagBlocks = repmat({ones(M, 1)}, 1, N);
-    % options.GroupCovariates = blkdiag(diagBlocks{:});
 elseif (size(options.GroupCovariates, 1) ~= N * M)
     error("'GroupCovariates' must have number of rows equal to " + ...
         "the number of participants/data files times the " + ...
         "number of columns in the task design");
+end
+
+% Add Temporal derivatives if requested
+if (options.McmcControl.includeDerivatives)
+    % Inject TempDeriv columns into GroupCovariates and append
+    % GroupCovariateNames
+    nx = size(options.GroupCovariates, 1);
+    P = fix(nx / N);  % Should be = M 99% of the time
+    
+    ndx = [reshape(1:nx, P, N)', repmat((1:M) + nx, N, 1)]';
+    ndx = reshape(ndx, numel(ndx), 1);
+    options.GroupCovariates = blkdiag(...
+        options.GroupCovariates, eye(M));
+    options.GroupCovariates = options.GroupCovariates(ndx, :);
+    options.GroupCovariateNames = [options.GroupCovariateNames, ...
+        cellstr("TempDeriv_" + string(1:M))];
 end
 
 % Setup output directory and write data 
@@ -206,6 +222,12 @@ for i = 1:N
         error('File %s timepoint mismatch:\n\tField ''%s'' has %d entries while ''s'' has %d', ...
             basename(dataFiles{i}), options.OutComeType, size(outcome, 1), ...
             size(data.s, 1));
+    end
+    
+    % If TempDeriv option requested, append I_M block to task design matrix
+    if (options.McmcControl.includeDerivatives)
+        data.s = blkdiag(data.s, eye(M));
+        outcome = [outcome; zeros(M, size(outcome, 2))];  % <- Make sure this line is necessary
     end
     
     
