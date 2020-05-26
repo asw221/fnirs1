@@ -9,7 +9,8 @@
 % Retrieve data files from multiple directories and read patient
 % demographic data
 data_files = fnirs1.get_data_files;
-data_files = [data_files, fnirs1.get_data_files]';
+data_files = [data_files; fnirs1.get_data_files];
+data_files = reshape(data_files, numel(data_files), 1);
 
 demo = readtable('~/Box/BayesianDataAnalysis/EN_CH_MA_PA_Tasks_NEW/Demographicinfo.xlsx');
 
@@ -26,6 +27,7 @@ demo = fnirs1.expand_table_conditions(demo, 2, 'Task');
 % and do not need to be part of table. In a model formula, put Cond last of
 % all categorical variables: e.g. Task + Cond + Task:Cond
 %
+
 fit = fnirs1.dlm(data_files, ...
     'GroupData', demo, ...
     'GroupFormula', 'ID ~ Task * Cond + LWIDraw + Age', ...

@@ -36,7 +36,11 @@ if ~isstring(ids)
         error(ME.message);
     end
 end
-ok = contains(fnames, ids);
+ok = logical(size(fnames));
+N = min(numel(fnames), numel(ids));
+for i = 1:N
+    ok(i) = contains(fnames(i), ids(i));
+end
 allok = all(ok);
 if (nargout > 1)
     varargout{1} = find(~ok);
