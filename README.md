@@ -104,6 +104,7 @@ integer factor of the participant’s original sampling rate (which was
 50 Hz in this case). Optional parameters are handled internally by a
 function called `fnirs1.specify_model`, and at the time of writing
 include, 
+##### Options
 - `'DownSampleRate'` - Integer down-sampling factor of participant’s sampling rate
 - `'McmcControl'` - An `fnirs1.mcmc_control` object to specify MCMC options
 - `'GroupData'` - A `table` with demographic information (group
