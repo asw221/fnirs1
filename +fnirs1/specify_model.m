@@ -162,8 +162,17 @@ if (groupAnalysis)
         warning('''GroupFormula'' will be ignored without ''GroupData''');
     end
     if (~isempty(options.GroupData))
+        % remove any instance of TempDeriv from the formula
+        if (contains(options.GroupData, 'TempDeriv'))
+            % regular expression is not foolproof (tertiary+ interactions)
+            options.GroupFormula = regexprep(options.GroupFormula, ...
+                '[ *+-(:]*TempDeriv[):]*', '');
+            warning('Don''t put TempDeriv directly in model formula');
+        end
+        % Add Cond column to GroupData
         options.GroupData = fnirs1.expand_table_conditions(...
             options.GroupData, M, 'Cond');
+        % Parse group covariates matrix
         design = fnirs1.mixed_effects_design(options.GroupData, ...
             options.GroupFormula);
         design = design.reformat_base_condition;
