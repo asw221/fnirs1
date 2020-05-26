@@ -90,7 +90,7 @@ classdef dlm_summary
                 condNo = sscanf(lines{i}, 'Cond = %i');
                 if ~isempty(condNo)
                     lines{i} = strrep(lines{i}, sprintf('Cond = %i', condNo), ...
-                        sprintf('Cond_%i', condNo + 1));
+                        sprintf('Cond %i', condNo + 1));
                 end
                 
                 covarNo = sscanf(lines{i}, '%*s Covariate %i');

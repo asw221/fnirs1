@@ -20,12 +20,12 @@ function outdir = specify_model(dataFiles, varargin)
 % select files manually. If only a single file is given, the output data in
 % DIR will be written to specify a single-subject analysis. If multiple 
 % files are given, the setup files will be written to specify a group-level
-% analysis. In both cases, analyses are setup to be done independently over
-% all channels; subsets of channels can be specified.
+% analysis. In both cases, analyses are set up to be done independently
+% over all channels; subsets of channels can be specified.
 %
 % FILES specified should be load-able Matlab files that contain 
 % variables that correspond to outcome data, named any of {'hbo', 'hbr',
-% 'hbt'}; stimulus design, named 's'; and timestamps, named 't'.
+% 'hbt'}; stimulus design, named 's'; and time stamps, named 't'.
 %
 % Optional parameters can be set using ParamName, ParamValue pairs. Valid
 % options are:
@@ -36,9 +36,13 @@ function outdir = specify_model(dataFiles, varargin)
 %   'GroupCovariates' - (numeric; optional) a covariates matrix for group
 %       analysis. Should have the same number of rows as the number of data
 %       FILES. Default is empty for single-subject analyses, or a vector of
-%       1's for group-level analyses
+%       1's for group-level analyses. Instead of using this parameter/value
+%       pair directly, however, we recommend that users should typically 
+%       specify the 'GroupData' and 'GroupFormula' options instead
 %
-%   'GroupCovariateNames' - (cellstr; optional)
+%   'GroupCovariateNames' - (cellstr; optional) to be used mainly in
+%       conjunction with the 'GroupCovariates' option. These can also be
+%       inferred from syntax using 'GroupData' and 'GroupFormula' 
 %
 %   'GroupData' - (table; optional) demographic information for group
 %       analyses
@@ -46,8 +50,8 @@ function outdir = specify_model(dataFiles, varargin)
 %   'GroupFormula' - (char; optional unless 'GroupData' is provided) this
 %       will look something like, 'y ~ age + sex'. While the formula
 %       requires a numeric outcome variable (like 'y' above), this can be
-%       any variable in 'GroupData' and will not actually be referred to in
-%       model fitting
+%       any continuous variable in 'GroupData' and will not actually be
+%       referred to in model fitting
 %
 %   'McmcControl' - (fnirs1.mcmc_control) can be any valid
 %       fnirs1.mcmc_control object. Default is the same as returned by
@@ -63,9 +67,25 @@ function outdir = specify_model(dataFiles, varargin)
 %       and does not subset
 %
 % Example usage:
+%   %% Single subject or group analysis, debug-length MCMC chains
+%   setup_dir = fnirs1.specify_model('', 'DownSampleRate', 10, ...
+%      'SpecificChannels', 1:2, ...
+%      'McmcControl', fnirs1.mcmc_debug)
+%   setup_files = fnirs1.list_setup_files(setup_dir)
+%   fit = fnirs1.dlm(setup_files)   
+%
+%   %% Group analysis: select multiple files at prompt,
+%   % Existing demographic information contained in a table called 'Demo'
+%   %   - Note: Names 'Cond' and 'TempDeriv' have special meanings and
+%   %     should not appear in 'GroupData' table columns
+%   setup_dir = fnirs1.specify_model('', 'DownSampleRate', 10, ...
+%      'GrouplData', Demo, 'GroupFormula', 'ID ~ Task * Cond', ...
+%      'McmcControl', fnirs1.mcmc_control)
+% 
 %
 % See also
-% fnirs1.dlm, fnirs1.mcmc_control, fnirs1.mcmc_debug, load
+% fnirs1.dlm, fnirs1.list_setup_files, fnirs1.mcmc_control, 
+% fnirs1.mcmc_debug, load, readtable
 % 
 
 
@@ -227,7 +247,7 @@ for i = 1:N
     % If TempDeriv option requested, append I_M block to task design matrix
     if (options.McmcControl.includeDerivatives)
         data.s = blkdiag(data.s, eye(M));
-        outcome = [outcome; zeros(M, size(outcome, 2))];  % <- Make sure this line is necessary
+        outcome = [outcome; zeros(M, size(outcome, 2))];  % <- 
     end
     
     

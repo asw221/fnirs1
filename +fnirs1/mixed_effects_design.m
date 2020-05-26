@@ -1,7 +1,18 @@
 
 classdef mixed_effects_design
+    % FNIRS1.MIXED_EFFECTS_DESIGN Extract design information from a model
+    % formula. Requires the Statistics and Machine Learning Toolbox
+    %
+    % Example usage:
+    %   ID = 1:4;
+    %   Var = rand(4, 1);
+    %   Grp = categorical([1 1 2 2]);
+    %   tbl = table(ID, Var, Grp)
+    %   med = fnirs1.mixed_effects_design(tbl, 'Var ~ Grp')
+    %   designMatrix(med)
+    %
    properties (SetAccess = private) 
-       Categories;           %
+       Categories;           % Struct containing categories from any categorical covariates
        CoefficientNames;     % Names of fixed effects coefficients
        FixedEffectsMatrix;   % Fixed effects design matrix
        Formula;              % Formula the object was constructed with
@@ -10,14 +21,14 @@ classdef mixed_effects_design
        VariableInfo;         % Table of variable information
    end
    properties (GetAccess = private)
-       RandomEffectsNameInfo;
+       RandomEffectsNameInfo;  % table of information for constructing random effects names
    end
    methods
        function obj = mixed_effects_design(tbl, formula, varargin)
-           % Constructor for fnirs1.mixed_effects_design objects. Arguments
-           % tbl should be an object of class 'table', and formula should
-           % be a valid model formula character string. Requires the
-           % Statistics and Machine Learning Toolbox
+           % Constructor for fnirs1.mixed_effects_design objects
+           %
+           % Arguments tbl should be an object of class 'table', and 
+           % formula shouldbe a valid model formula character string
            
            % Plan: to create an unfitted LinearMixedModel object and use
            %   the result to extract and save design matrix components
@@ -74,6 +85,8 @@ classdef mixed_effects_design
            end
        end
        function nms = randomEffectsNames(obj)
+           % Extract the random effects names from a
+           % fnirs1.mixed_effects_design object
            nms = cell(size(obj.RandomEffectsNameInfo, 1), 1);
            for i = 1:numel(nms)
                nms{i} = sprintf('%s:%s %s', ...
@@ -83,6 +96,13 @@ classdef mixed_effects_design
            end
        end
        function obj = reformat_base_condition(obj)
+           % Reformats the fixed effect matrix base condition in a model
+           % with categorical predictors (so that the base is the first
+           % condition in the first appearing categorical main effect).
+           % Intended to be kind of a work-around for Matlab's difficulty 
+           % supporting ANOVA-type coded designs
+           %
+           
            X = obj.FixedEffectsMatrix;
            dummyColumns = logical(size(X, 2));
            for j = 1:size(X, 2)

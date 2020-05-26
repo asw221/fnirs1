@@ -19,7 +19,7 @@ FFTW_LIB  = '/usr/local/lib';
 %     "libfftw3.{a/so/dylib}"
 
 
-
+% -------------------------------------------------------------------------
 if (ispc)
     error("Installer intended for OSX/Linux")
 end
@@ -34,7 +34,7 @@ end
 
 
 
-%% Setup variables for Makefile contents
+% --- Setup variables for Makefile contents -------------------------------
 CXX = 'g++';
 if (ismac)
     CXX = 'clang++';
@@ -58,7 +58,7 @@ elseif (isunix)
 end
 
 
-%% Write Makefile and compile code
+% --- Write Makefile and compile code -------------------------------------
 cd ../include
 
 makefileid = fopen('Makefile', 'w');
@@ -93,6 +93,8 @@ if (~any(strcmp(pwd, regexp(path, pathsep, 'split'))))
     addpath(pwd)
     savepath(userpath)
 end
+
+% --- Cleanup and checks --------------------------------------------------
 % Return to original directory
 cd ./+fnirs1/installer
 clear CXX CXXFLAGS FFTW_HOME FFTW_LIB FILES INC LIB LINK OBJECTS makefileid status

@@ -1,13 +1,11 @@
 ## fNIRS1: MATLAB interface for Dr. Johnson’s C suite for dynamic linear models
 
-### Outstanding questions
- - The organization of channels for group analyses: is it always consistent across subjects?
+#### Outstanding questions/comments
  - How to best format model output for ease of use?
  - Will the software ever need to be run from a PC?
- - In the `*.mat` files Frank shared with us, are the variable names
-   standard output from another program? 
 
-##### Prerequisites
+#### Prerequisites
+ - Matlab's Statistics and Machine Learning Toolbox
  - [FFTW3](http://www.fftw.org/) needs to be installed separately
    - On OSX, this is quite easy with `homebrew` installed: from a
    terminal, the command is simply `brew install fftw`
@@ -15,6 +13,19 @@
    - You need to know the location of a file called `fftw3.h`, which comes
    with FFTW3. On my MacBook, this file is found in
    `/usr/local/include/fftw3.h`
+ - [Xcode](https://developer.apple.com/xcode/) may need to be
+   installed if running on a Mac
+   - This can be done by running `xcode-select --install` from a
+     terminal. This may take a while. Once finished, check that the
+     command `clang++ --version` outputs something official
+     looking. On my MacBook, I have,
+	 ```
+	 $ clang++ --version
+	 Apple LLVM version 10.0.1 (clang-1001.0.46.4)
+	 Target: x86_64-apple-darwin18.7.0
+	 Thread model: posix
+	 InstalledDir: /Library/Developer/CommandLineTools/usr/bin
+	 ```
 
 ### Installation
 As part of `fnirs1`, we provide an install script for convenient
@@ -31,13 +42,15 @@ alt="install script location"
 width="250" height="249"></p> 
 
 
-Note that that script uses a variable called `FFTW_HOME` which may need
-to be set before running `install.m`. On my MacBook, I have it set to
-`/usr/local` to reflect the location of `include/fftw3.h`
+Note that that script uses variables called `FFTW_HOME` and `FFTW_LIB`
+which may need to be set before running `install.m`. On my MacBook, I
+have `FFTW_HOME` set to `/usr/local/include` to reflect the location
+of `fftw3.h`, and `FFTW_LIB` set to `/usr/local/lib` for the
+`libfftw3*` set of files.
 
 <p align="center"><img src="vignette/fftw-home.png"
 alt="FFTW_HOME variable in install.m"
-width="641" height="166"></p> 
+width="616" height="231"></p> 
 
 If the install script finishes successfully, information will print to
 the MATLAB command window, and the directory above `+fnirs1` will be
@@ -82,7 +95,7 @@ participant file. This file should contain variables named `hbo`, `hbr`,
 set/tweaked can also be set via this function. For example, a complete
 subject data analysis might stem from the command,
 ```MATLAB
->> summary = fnirs1.dlm('', 'DownSampleRate', 10);
+>> summary = fnirs1.dlm('', 'DownSampleRate', 10, 'SpecificChannels', 1:4);
 ```
 
 where `'DownSampleRate'` instructs the program to down-sample the data
@@ -92,8 +105,17 @@ integer factor of the participant’s original sampling rate (which was
 function called `fnirs1.specify_model`, and at the time of writing
 include, 
 - `'DownSampleRate'` - Integer down-sampling factor of participant’s sampling rate
-- `'GroupCovariates'` - Numeric matrix of group-level covariates (group analysis only)
 - `'McmcControl'` - An `fnirs1.mcmc_control` object to specify MCMC options
+- `'GroupData'` - A `table` with demographic information (group
+  analyses). There are two special/reserved names that should never
+  appear in your GroupData table directly (they're
+  case-sensitive). These are `Cond` for within-task conditions, and
+  `TempDeriv` for temporal derivatives from HRFs corresponding to
+  those within-task conditions.
+- `'GroupFormula'` - A model formula to specify what group level model
+ you want to fit using the data in the `GroupData` table. This will
+ look something like, `'y ~ age + sex + task * Cond'`. Always put
+ `Cond` last of the categorical covariates in a model formula.
 - `'OutcomeType'` - Character. Should be one of {`'hbo'`, `'hbr'`, `'hbt'`}
 - `'SpecificChannels'` - Integer vector index to specify analyses on
   subsets of channels
@@ -111,28 +133,26 @@ object contains information about the fitted models, and displays
 that information in a (hopefully) convenient format. For example,
 printing, 
 ```MATLAB
->> summary
+>> fit = fnirs1.dlm('', 'DownSampleRate', 10, ...
+  'SpecificChannels', 9, 'McmcControl', fnirs1.mcmc_control(1000))
+Reading participant data files and writing temporaries.
+This may take a minute
+	Files written for: 3081_Chinese_Task1
+Model setup complete
+0....100....200....300....400....500....600....700....800....900....1000
 
-summary = 
+Please see file Parameter_Estimates.log for parameter estimates and summaries
 
-	DLM Summary: ch0001
-Parameter                 Estimate  Std.Err. 95.0% Cred.Int.  
-------------------------------------------------------------
-Participant10_hbo Stim        1.340  0.674      (0.52, 2.56) *
-Participant10_hbo Stim        0.027  0.474     (-0.61, 0.74) 
-Participant10_hbo Stim       -0.372  0.330     (-0.86, 0.17) 
-Participant10_hbo Stim        1.386  0.887      (0.17, 2.49) *
-Participant10_hbo Stim        0.018  0.512     (-0.84, 0.81) 
-Participant10_hbo Stim       -1.317  0.722    (-2.17, -0.13) *
-Participant10_hbo Stim        0.771  0.660     (-0.29, 1.71) 
-Participant10_hbo Stim        0.302  0.596     (-0.65, 1.20) 
-Participant10_hbo Stim       -0.403  0.383     (-0.86, 0.26) 
-------------------------------------------------------------
+fit = 
 
-	DLM Summary: ch0002
-Parameter                 Estimate  Std.Err. 95.0% Cred.Int.  
-------------------------------------------------------------
-Participant10_hbo Stim       -1.260  0.267    (-1.50, -0.75) *
+	DLM Summary: ch0009
+Parameter                                     Estimate  Std.Err. 95.0% Cred.Int.  
+--------------------------------------------------------------------------------
+3081_Chinese_Task1_hbo Cond 1: HRF                1.944  1.244     (-4.41, 0.55) 
+3081_Chinese_Task1_hbo Cond 2: HRF                3.162  1.347      (0.45, 5.81) *
+3081_Chinese_Task1_hbo Cond 3: HRF                1.085  1.442     (-3.71, 1.75) 
+--------------------------------------------------------------------------------
+
 ...
 ```
 
@@ -140,21 +160,15 @@ outputs lots of information about parameter estimates for each
 channel. The Parameter field is truncated to save space while
 printing, but full parameter descriptions can be extracted via,
 ```MATLAB
->> summary(1).Descriptions
+>> fit(1).Descriptions
 
 ans =
 
-  9×1 cell array
+  3×1 cell array
 
-    {'Participant10_hbo Stim 1: HRF'       }
-    {'Participant10_hbo Stim 1: HRF TmpDrv'}
-    {'Participant10_hbo Stim 1: HRF TmpDrv'}
-    {'Participant10_hbo Stim 2: HRF'       }
-    {'Participant10_hbo Stim 2: HRF TmpDrv'}
-    {'Participant10_hbo Stim 2: HRF TmpDrv'}
-    {'Participant10_hbo Stim 3: HRF'       }
-    {'Participant10_hbo Stim 3: HRF TmpDrv'}
-    {'Participant10_hbo Stim 3: HRF TmpDrv'}
+    {'3081_Chinese_Task1_hbo Cond 1: HRF'}
+    {'3081_Chinese_Task1_hbo Cond 2: HRF'}
+    {'3081_Chinese_Task1_hbo Cond 3: HRF'}
 ```
 
 Similarly, the coefficient estimates, their standard errors, and the
@@ -173,7 +187,7 @@ command,
 ```
 
 If this command runs smoothly, then we suggest running full analyses
-with longer MCMC chains. The default MCMC options run for 20,000
+with longer MCMC chains. The default MCMC options run for 3,000
 iterations, which should be sufficient for most analyses,
 ```MATLAB
 >> fnirs1.mcmc_control
@@ -182,26 +196,15 @@ ans =
 
   mcmc_control with properties:
 
-                burnin: 10000
+                burnin: 1000
          expectedKnots: 15
     includeDerivatives: 0
-         maxIterations: 20000
+         maxIterations: 3000
 ```
 
 
 
 ### Fitting group-level models
-
-A **_cautionary note_**: group-analyses are not completely stable
-yet. Save `fnirs1.dlm_summary` objects into `*.mat` files as soon as
-analyses are complete. MATLAB will sometimes hang or crash after
-running group-level analyses this way, but it’s _usually_ been several
-minutes after analyses are complete. I’m not sure what’s going on
-here: there may be a MATLAB internal bug to blame, and I will continue
-to look into it. (MathWorks emailed me to call it an "unknown issue.")
-At the time of writing, I’m working primarily with MATLAB R2019a
-running on OSX 10.14. 
-
 
 Specifying group-level analyses is largely similar to single-subject
 analyses, but in general, group-analyses take longer to run than
@@ -210,76 +213,56 @@ file, `fnirs1.dlm` will automatically conduct a group-level
 analysis. For example, continuing with the short debug chains options,
 and with,
 ```MATLAB
->> files'
+>> fit = fnirs1.dlm(data_files, ...
+    'GroupData', demo, ...
+    'GroupFormula', 'ID ~ Task * Cond + LWIDraw + Age', ...
+    'DownSampleRate', 10, ...
+    'SpecificChannels', 9:10, ...
+    'McmcControl', fnirs1.mcmc_control(30, false));
+Reading participant data files and writing temporaries.
+This may take a minute
+	Files written for: 3081_Chinese_Task1
+	Files written for: 3082_Chinese_Task1
+	Files written for: 3083_Chinese_Task1
+	Files written for: 3084_Chinese_Task1
+	Files written for: 3085_Chinese_Task1
+	Files written for: 3081_Chinese_Task2
+	Files written for: 3082_Chinese_Task2
+	Files written for: 3083_Chinese_Task2
+	Files written for: 3084_Chinese_Task2
+	Files written for: 3085_Chinese_Task2
+Model setup complete
+0.
 
-ans =
+Please see file Parameter_Estimates.log for parameter estimates and summaries
+0.
 
-  4×1 cell array
-    {'Box/BayesianDataAnalysis/ENMA_Data_Sep32019_N29/Participant1.mat'}
-    {'Box/BayesianDataAnalysis/ENMA_Data_Sep32019_N29/Participant2.mat'}
-    {'Box/BayesianDataAnalysis/ENMA_Data_Sep32019_N29/Participant3.mat'}
-    {'Box/BayesianDataAnalysis/ENMA_Data_Sep32019_N29/Participant4.mat'} 
+Please see file Parameter_Estimates.log for parameter estimates and summaries
+>> fit
 
->> summary = fnirs1.dlm(files, 'McmcControl', fnirs1.mcmc_debug, ...
-	'DownSampleRate', 10, 'SpecificChannels', [1:4]);
->> summary
+fit = 
 
-summary = 
-
-	DLM Summary: ch0001
-Parameter                 Estimate  Std.Err. 95.0% Cred.Int.  
-------------------------------------------------------------
-Population Stim 1 HRF o      -0.202  0.218     (-0.54, 0.10) 
-Population Stim 1 TmpDr       0.000  0.000      (0.00, 0.00) 
-Population Stim 1 TmpDr       0.593  0.977     (-0.74, 2.28) 
-Population Stim 2 HRF o      -1.210  3.212     (-6.67, 1.81) 
-Population Stim 2 TmpDr      -0.001  2.303     (-3.73, 2.70) 
-Population Stim 2 TmpDr      -0.061  2.010     (-2.30, 3.64) 
-Population Stim 3 HRF o      -0.295  1.792     (-2.12, 2.39) 
-Population Stim 3 TmpDr      -2.282  2.691     (-4.58, 2.52) 
-Population Stim 3 TmpDr       1.774  1.597     (-1.08, 3.62) 
-Participant1_hbo Stim 1       0.112  0.447     (-0.58, 0.81) 
-Participant1_hbo Stim 1      -0.354  0.213    (-0.68, -0.06) *
-Participant1_hbo Stim 1      -0.053  0.191     (-0.35, 0.25) 
-Participant1_hbo Stim 2       0.803  6.995     (-7.72, 9.15) 
-Participant1_hbo Stim 2       0.831  1.680     (-1.59, 3.43) 
-Participant1_hbo Stim 2      -0.282  0.763     (-1.28, 0.83) 
-Participant1_hbo Stim 3      -0.155  0.332     (-0.62, 0.41) 
-Participant1_hbo Stim 3      -0.149  0.352     (-0.79, 0.31) 
-Participant1_hbo Stim 3      -0.612  0.356     (-1.03, 0.03) 
-Participant2_hbo Stim 1       0.617  0.376      (0.18, 1.26) *
-Participant2_hbo Stim 1      -3.042  10.441   (-17.43, 12.18) 
-Participant2_hbo Stim 1      -0.200  0.436     (-0.69, 0.58) 
-Participant2_hbo Stim 2       0.242  0.420     (-0.17, 1.05) 
-Participant2_hbo Stim 2      -0.187  0.373     (-0.65, 0.42) 
-Participant2_hbo Stim 2       0.278  0.393     (-0.28, 0.96) 
-Participant2_hbo Stim 3       0.145  0.315     (-0.39, 0.52) 
-Participant2_hbo Stim 3      -0.114  0.499     (-0.66, 0.68) 
-Participant2_hbo Stim 3       0.115  0.402     (-0.37, 0.85) 
-Participant3_hbo Stim 1      -0.245  0.669     (-1.18, 0.77) 
-Participant3_hbo Stim 1      -2.445  10.347   (-17.36, 12.97) 
-Participant3_hbo Stim 1       0.006  0.563     (-0.79, 0.69) 
-Participant3_hbo Stim 2       0.030  0.511     (-1.07, 0.48) 
-Participant3_hbo Stim 2       0.176  0.445     (-0.63, 0.75) 
-Participant3_hbo Stim 2      -0.199  0.371     (-0.71, 0.36) 
-Participant3_hbo Stim 3      -0.112  0.262     (-0.49, 0.17) 
-Participant3_hbo Stim 3      -0.079  0.414     (-0.71, 0.55) 
-Participant3_hbo Stim 3      -0.180  0.361     (-0.62, 0.42) 
-Participant4_hbo Stim 1       4.502  6.144    (-5.75, 12.56) 
-Participant4_hbo Stim 1       0.304  1.058     (-0.81, 2.22) 
-Participant4_hbo Stim 1      -0.594  0.372    (-0.97, -0.12) *
-Participant4_hbo Stim 2       0.187  0.334     (-0.33, 0.57) 
-Participant4_hbo Stim 2       0.136  0.239     (-0.30, 0.47) 
-Participant4_hbo Stim 2      -0.186  0.275     (-0.56, 0.21) 
-Participant4_hbo Stim 3      -0.028  0.573     (-1.05, 0.62) 
-Participant4_hbo Stim 3      -0.207  0.320     (-0.67, 0.24) 
-Participant4_hbo Stim 3      -0.104  0.388     (-0.71, 0.33) 
-------------------------------------------------------------
+	DLM Summary: ch0009
+Parameter                                     Estimate  Std.Err. 95.0% Cred.Int. 
+--------------------------------------------------------------------------------
+Population Effect: Task_1                         1.083  1.573     (-1.90, 3.30) 
+Population Effect: LWIDraw                        0.061  0.029      (0.01, 0.11) *
+Population Effect: Age                            0.562  0.349     (-1.06, 0.07) 
+Population Effect: Task_2                         1.445  1.938     (-2.32, 3.85) 
+Population Effect: Cond_2                         0.979  0.913     (-0.82, 2.09) 
+Population Effect: Cond_3                         0.164  0.689     (-1.07, 1.37) 
+Population Effect: Task_2:Cond_2                  0.683  1.215     (-2.39, 1.45) 
+Population Effect: Task_2:Cond_3                  0.322  0.862     (-1.98, 0.76) 
+3081_Chinese_Task1_hbo Cond 1: HRF                0.492  0.827     (-2.08, 0.75) 
+3081_Chinese_Task1_hbo Cond 2: HRF                1.967  0.963      (0.21, 3.48) *
+3081_Chinese_Task1_hbo Cond 3: HRF                0.128  1.105     (-1.88, 1.72) 
+3082_Chinese_Task1_hbo Cond 1: HRF                2.413  1.158      (0.82, 4.42) *
+3082_Chinese_Task1_hbo Cond 2: HRF                1.680  0.810      (0.29, 3.15) *
 ... 
 ```
 
 Inferential statements for group-level parameters are listed at the
-top with the 'Population' prefix; participant-level parameter
+top with the 'Population Effect' prefix; participant-level parameter
 estimates are given immediately below. 
 
 

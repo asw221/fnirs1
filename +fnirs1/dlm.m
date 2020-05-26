@@ -16,24 +16,44 @@ function summaries = dlm(varargin)
 % assumes the setup.dat-based syntax above (with one exception noted 
 % below). One easy way to specify an optional argument without changing any
 % defaults is to call, for example,
+% >> DataFiles = {'path/to/subj1.mat'; 'path/to/subj2.mat'};
 % >> S = FNIRS1.DLM(DataFiles, 'McmcControl', fnirs1.mcmc_control);
 %
-% Note that the call FNIRS1.DLM('') is ambiguous with no other arguments 
-% (does FNIRS1.DLM ask the user to select 'setup.dat' files? Or participant
-% data files?). In this case, FNIRS1.DLM will always resolve this conflict 
-% by asking the user to select participant data files, and passing these to
-% fnirs1.specify_model with other defaults. If you need help generating a
-% list of 'setup.dat' files, FNIRS1 provides the fnirs1.list_setup_files
-% utility.
+% DataFiles specified should be load-able Matlab files that contain 
+% variables that correspond to outcome data, named any of {'hbo', 'hbr',
+% 'hbt'}; stimulus design, named 's'; and time stamps, named 't'.
+%
+% DataFiles can also be the empty character string,
+% '', in which case FNIRS1.DLM will prompt the user to select participant
+% data files. The call FNIRS1.DLM('') could be ambiguous with no other 
+% arguments (does FNIRS1.DLM ask the user to select 'setup.dat' files? Or 
+% participant data files?). In this case, FNIRS1.DLM will always resolve 
+% this conflict by asking the user to select participant data files, and 
+% passing these to fnirs1.specify_model with other defaults. If you need 
+% help generating a list of 'setup.dat' files, FNIRS1 provides the 
+% fnirs1.list_setup_files utility.
+%
+% Other valid Options are:  (see fnirs1.specify_model for full details)
+%   'DownSampleRate'      - (numeric, integer)
+%   'GroupCovariates'     - (numeric; optional)
+%   'GroupCovariateNames' - (cellstr; optional)
+%   'GroupData'           - (table; optional)
+%   'GroupFormula'        - (char; optional unless 'GroupData' is provided)
+%   'McmcControl'         - (fnirs1.mcmc_control)
+%   'OutcomeType'         - (char)
+%   'SpecificChannels'    - (numeric, integer)
+%
 %
 % Example usage:
-%   % Single subject or group analysis, debug-length MCMC chains
+%   %% Single subject or group analysis, debug-length MCMC chains
 %   fit = fnirs1.dlm('', 'DownSampleRate', 10, ...
 %      'SpecificChannels', 1:2, ...
 %      'McmcControl', fnirs1.mcmc_debug)
 %
-%   % Group analysis: select multiple files at prompt,
+%   %% Group analysis: select multiple files at prompt,
 %   % Existing demographic information contained in a table called 'Demo'
+%   %   - Note: Names 'Cond' and 'TempDeriv' have special meanings and
+%   %     should not appear in 'GroupData' table columns
 %   fit = fnirs1.dlm('', 'DownSampleRate', 10, ...
 %      'SpecificChannels', 1:2, ...
 %      'GrouplData', Demo, 'GroupFormula', 'ID ~ Task * Cond', ...
@@ -116,7 +136,11 @@ if (any(success))
             summaries(i).Nickname = basename(setupDir);
             
             % zip successful folders and delete un-zipped versions
-            zip(setupDir, setupDir);
+            try
+                zip(setupDir, setupDir);
+            catch ME
+                warning(ME.message);
+            end
             remove_folder_and_contents(setupDir);
         end
     else

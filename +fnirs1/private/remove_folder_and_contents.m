@@ -1,5 +1,8 @@
 
 function remove_folder_and_contents(folder)
+if strcmp(folder, pwd)
+    cd ../
+end
 if (~exist(folder, 'dir'))
     warning('Directory ''%s'' does not exist', folder);
 else
