@@ -69,7 +69,7 @@ The primary model fitting tool in our package is a function called
 `fnirs1.dlm`. This function takes as input a set of data files and
 returns a model summary object. Basic syntax is, 
 <pre>
-```MATLAB
+```
 >> fit = fnirs1.dlm(data_files, <i>Option</i>, <i>OptionValue</i>);
 ```
 </pre>
