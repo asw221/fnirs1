@@ -70,7 +70,7 @@ The primary model fitting tool in our package is a function called
 returns a model summary object. Basic syntax is, 
 <pre>
 ```MATLAB
->> summary = fnirs1.dlm(data_files, <i>Option</i>, <i>OptionValue</i>);
+>> fit = fnirs1.dlm(data_files, <i>Option</i>, <i>OptionValue</i>);
 ```
 </pre>
 
@@ -82,7 +82,7 @@ run analyses based on `setup.dat` files written for each channel within
 this folder. If the data files argument is left as an empty string,
 MATLAB will open a UI window and ask the user to select files by hand,
 ```MATLAB
->> summary = fnirs1.dlm('');
+>> fit = fnirs1.dlm('');
 ```
 
 <p align="center"><img src="vignette/file-selection-window.png"
@@ -95,7 +95,7 @@ participant file. This file should contain variables named `hbo`, `hbr`,
 set/tweaked can also be set via this function. For example, a complete
 subject data analysis might stem from the command,
 ```MATLAB
->> summary = fnirs1.dlm('', 'DownSampleRate', 10, 'SpecificChannels', 1:4);
+>> fit = fnirs1.dlm('', 'DownSampleRate', 10, 'SpecificChannels', 1:4);
 ```
 
 where `'DownSampleRate'` instructs the program to down-sample the data
