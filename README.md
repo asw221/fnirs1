@@ -1,5 +1,8 @@
 ## fNIRS1: MATLAB interface for Dr. Johnson’s C suite for dynamic linear models
 
+Please email me at awhitem@umich.edu to suggest additional features or
+especially if I can make the help pages more clear.
+
 #### Outstanding questions/comments
  - How to best format model output for ease of use?
  - Will the software ever need to be run from a PC?
@@ -104,7 +107,7 @@ integer factor of the participant’s original sampling rate (which was
 50 Hz in this case). Optional parameters are handled internally by a
 function called `fnirs1.specify_model`, and at the time of writing
 include, 
-##### Options
+#### Options
 - `'DownSampleRate'` - Integer down-sampling factor of participant’s sampling rate
 - `'McmcControl'` - An `fnirs1.mcmc_control` object to specify MCMC options
 - `'GroupData'` - A `table` with demographic information (group
