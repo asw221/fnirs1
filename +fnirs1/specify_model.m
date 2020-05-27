@@ -45,13 +45,24 @@ function outdir = specify_model(dataFiles, varargin)
 %       inferred from syntax using 'GroupData' and 'GroupFormula' 
 %
 %   'GroupData' - (table; optional) demographic information for group
-%       analyses
+%       analyses. There are two special/reserved variable names that should
+%       not appear in a 'GroupData' table directly. They are: 'Cond' for
+%       task condition (derived from the columns of participants' task
+%       design matrix), and 'TempDeriv' for HRF temporal derivatives (if
+%       requested). FNIRS1 will always append 'Cond' as a column to group
+%       data; 'TempDeriv' is optionally added as a main effect directly to
+%       the group level covariate matrix
 %
 %   'GroupFormula' - (char; optional unless 'GroupData' is provided) this
 %       will look something like, 'y ~ age + sex'. While the formula
 %       requires a numeric outcome variable (like 'y' above), this can be
 %       any continuous variable in 'GroupData' and will not actually be
-%       referred to in model fitting
+%       referred to in model fitting. (See 'GroupData' above) The special
+%       variable 'Cond' can be referred to in the group formula;
+%       'TempDeriv' should not be. If using 'Cond' in a model formula,
+%       please make sure it appears LAST of all the categorical
+%       covariates referred to. For example, 'y ~ Task * Cond' is ok, but
+%       'y ~ Cond + Task' is not (assuming Task is categorical).
 %
 %   'McmcControl' - (fnirs1.mcmc_control) can be any valid
 %       fnirs1.mcmc_control object. Default is the same as returned by

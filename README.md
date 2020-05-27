@@ -118,8 +118,8 @@ include,
   those within-task conditions.
 - `'GroupFormula'` - A model formula to specify what group level model
  you want to fit using the data in the `GroupData` table. This will
- look something like, `'y ~ age + sex + task * Cond'`. Always put
- `Cond` last of the categorical covariates in a model formula.
+ look something like, `'y ~ age + sex + task * Cond'`. <ins>**Always** put
+ `Cond` last of the categorical covariates in a model formula</ins>.
 - `'OutcomeType'` - Character. Should be one of {`'hbo'`, `'hbr'`, `'hbt'`}
 - `'SpecificChannels'` - Integer vector index to specify analyses on
   subsets of channels
