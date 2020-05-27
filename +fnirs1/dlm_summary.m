@@ -59,6 +59,10 @@ classdef dlm_summary
             obj.PrintWidth = 80;  % not counting asterisks
             obj.StarsCuttoffs = [0.95, 0.99, 0.999];
         end
+        function B = isempty(obj)
+            % Returns logical true of object does not contain any data
+            B = isempty(horzcat(obj(:).Estimates));
+        end
         function obj = read_from_file(obj, file)
             % Read data from a Parameter_Estimates.log file and extract
             % parameter estimates and inferential summaries
@@ -230,8 +234,40 @@ classdef dlm_summary
                 end  % if (~isempty(obj(j).Estimate))
             end  % for ob = obj
         end
-        function tbl = table(obj)
-            tbl = table();
+        function tbl = table(obj, varargin)
+            % Conversion from FNIRS1.DLM_SUMMARY to table
+            %
+            % Optional additional argument can be used to select whether to
+            % return table of the estimates or standard errors. For
+            % example, if D is an fnirs1.dlm_summary object,
+            % >> table(D)              % returns table of Estimates
+            % >> table(D, 'Std.Err.')  % returns table of standard errors
+            %
+            prop = 'Estimates';
+            if (nargin > 1)
+                if ~(ischar(varargin{1}) || isstring(varargin{1}))
+                    error('dlm_summary:TableConversion:BadProperty', ...
+                        'property should be string-like');
+                end
+                if (strcmpi(varargin{1}, 'StdError') || ...
+                        strcmpi(varargin{1}, 'Std.Err.') || ...
+                        strcmpi(varargin{1}, 'StdErrors'))
+                    prop = 'StdErrors';
+                elseif ~(strcmpi(varargin{1}, 'Estimate') || ...
+                        strcmpi(varargin{1}, 'Estimates'))
+                    error('dlm_summary:TableConversion:UnrecProp', ...
+                        'unrecognized property option');
+                end
+            end
+            if ~isempty(obj)
+                Channel = cellstr(vertcat(obj(:).Nickname));
+                tbl = array2table(horzcat(obj(:).(prop))', ...
+                    'VariableNames', ...
+                    matlab.lang.makeValidName(obj(1).Descriptions), ...
+                    'RowNames', Channel);
+            else
+                tbl = table();
+            end
         end
     end
     methods (Static)
