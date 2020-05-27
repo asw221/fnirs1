@@ -230,6 +230,9 @@ classdef dlm_summary
                 end  % if (~isempty(obj(j).Estimate))
             end  % for ob = obj
         end
+        function tbl = table(obj)
+            tbl = table();
+        end
     end
     methods (Static)
         function displayEmptyObject()

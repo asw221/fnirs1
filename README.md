@@ -98,7 +98,7 @@ participant file. This file should contain variables named `hbo`, `hbr`,
 set/tweaked can also be set via this function. For example, a complete
 subject data analysis might stem from the command,
 ```MATLAB
->> fit = fnirs1.dlm('', 'DownSampleRate', 10, 'SpecificChannels', 1:4);
+>> fit = fnirs1.dlm('', 'DownSampleRate', 10);
 ```
 
 where `'DownSampleRate'` instructs the program to down-sample the data

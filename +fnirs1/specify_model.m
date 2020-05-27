@@ -174,7 +174,7 @@ if (groupAnalysis)
     end
     if (~isempty(options.GroupData))
         % remove any instance of TempDeriv from the formula
-        if (contains(options.GroupData, 'TempDeriv'))
+        if (contains(options.GroupFormula, 'TempDeriv'))
             % regular expression is not foolproof (tertiary+ interactions)
             fprintf('%s -> ', options.GroupFormula);
             options.GroupFormula = regexprep(options.GroupFormula, ...
