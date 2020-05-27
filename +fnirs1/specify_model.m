@@ -165,8 +165,10 @@ if (groupAnalysis)
         % remove any instance of TempDeriv from the formula
         if (contains(options.GroupData, 'TempDeriv'))
             % regular expression is not foolproof (tertiary+ interactions)
+            fprintf('%s -> ', options.GroupFormula);
             options.GroupFormula = regexprep(options.GroupFormula, ...
                 '[ *+-(:]*TempDeriv[):]*', '');
+            fprintf('%s\n', options.GroupFormula);
             warning('Don''t put TempDeriv directly in model formula');
         end
         % Add Cond column to GroupData
@@ -253,11 +255,13 @@ for i = 1:N
             size(data.s, 1));
     end
     
-    % If TempDeriv option requested, append I_M block to task design matrix
-    if (options.McmcControl.includeDerivatives)
-        data.s = blkdiag(data.s, eye(M));
-        outcome = [outcome; zeros(M, size(outcome, 2))];  % <- 
-    end
+    % If we ever need to append S matrix for TempDeriv, that will happen
+    % here, for example, like this:
+    % % If TempDeriv option requested, append I_M block to task design matrix
+    % if (options.McmcControl.includeDerivatives)
+    %     data.s = blkdiag(data.s, eye(M));
+    %     outcome = [outcome; zeros(M, size(outcome, 2))];  % <- 
+    % end
     
     
     if (i == 1)
