@@ -5,9 +5,12 @@ especially if I can make the help pages more clear.
 
 #### Outstanding questions/comments
  - How to best format model output for ease of use?
- - Will the software ever need to be run from a PC?
 
 #### Prerequisites
+ - Unix based operating system (Linux or OSX)
+   - While our Matlab code is OS invariant, our install script (see
+     below) uses a simple `make`-based build system, and will not work
+     out of the box in Windows 
  - Matlab's Statistics and Machine Learning Toolbox
  - [FFTW3](http://www.fftw.org/) needs to be installed separately
    - On OSX, this is quite easy with `homebrew` installed: from a
