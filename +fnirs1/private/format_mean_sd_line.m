@@ -9,7 +9,7 @@ name = deblank(strsplit(line, 'mean = '));
 if (numel(name) == 1)
     name = {''};
 end
-params = regexp(line, '\d+\.?\d*', 'match');
+params = regexp(line, '-?\d+\.?\d*', 'match');
 for i = 1:numel(params)
     params{i} = sscanf(params{i}, '%f');
 end
