@@ -413,6 +413,24 @@ classdef dlm_summary
                     obj.Level = ntrvl.Level;
                     count = count + 1;
                 end
+            end  % end loop over lines
+            
+            % If TempDeriv's included, awkwardness that MCMC samples
+            % columns are in order: [HRF_1-n, TempDeriv_1-n], but
+            % Parameter_Estimates.log order is interleaved: [HRF_1,
+            % TempDeriv_1, ..., HRF_n, TempDeriv_n]. Reorder Estimates,
+            % SE's and intervals:
+            tempDerivInd = fnirs1.utils.regexpl(...
+                obj.Descriptions, 'TempDeriv');
+            if (any(tempDerivInd))
+                obj.Descriptions = [obj.Descriptions(~tempDerivInd); ...
+                    obj.Descriptions(tempDerivInd)];
+                obj.Estimates = [obj.Estimates(~tempDerivInd); ...
+                    obj.Estimates(tempDerivInd)];
+                obj.StdErrors = [obj.StdErrors(~tempDerivInd); ...
+                    obj.StdErrors(tempDerivInd)];
+                obj.Intervals = [obj.Intervals(~tempDerivInd, :); ...
+                    obj.Intervals(tempDerivInd, :)];
             end
             
             % Read in appropriate samples
