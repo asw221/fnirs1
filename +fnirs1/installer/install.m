@@ -35,9 +35,12 @@ end
 
 
 % --- Setup variables for Makefile contents -------------------------------
-CXX = 'g++';
-if (ismac)
-    CXX = 'clang++';
+CXX = getenv('CXX');
+if (isempty(CXX))
+    CXX = 'g++';
+    if (ismac)
+    	CXX = 'clang++';
+    end
 end
 
 FILES = ['main.cpp mcmc.cpp cholesky.cpp randgen.cpp mybspline.cpp ', ...
@@ -50,7 +53,7 @@ CXXFLAGS = '-O2 -Wall';
 INC = ['-I', FFTW_HOME];
 LIB = ['-L', FFTW_LIB];
 
-LINK = '-lm -lfftw3 -lfftw3_threads';
+LINK = '-lfftw3 -lfftw3_threads -lm';
 if (ismac)
     LINK = [LINK, ' -Xpreprocessor -fopenmp -lomp'];
 elseif (isunix)
@@ -91,7 +94,7 @@ cd ../../
 % the new path
 if (~any(strcmp(pwd, regexp(path, pathsep, 'split'))))
     addpath(pwd)
-    savepath(userpath)
+    savepath(fullfile(userpath, 'pathdef.m'))
 end
 
 % --- Cleanup and checks --------------------------------------------------

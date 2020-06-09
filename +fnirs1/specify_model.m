@@ -262,7 +262,7 @@ for i = 1:N
     if (size(outcome, 1) ~= size(data.s, 1))
         remove_folder_and_contents(outdir);
         error('File %s timepoint mismatch:\n\tField ''%s'' has %d entries while ''s'' has %d', ...
-            basename(dataFiles{i}), options.OutComeType, size(outcome, 1), ...
+            fnirs1.utils.basename(dataFiles{i}), options.OutComeType, size(outcome, 1), ...
             size(data.s, 1));
     end
     
@@ -441,8 +441,8 @@ function success = writeSetupParticipant(fid, dataFile, designFile, ...
 % Write subject-specific information to fid
 success = true;
 fprintf(fid, '\nSUB_Replicates = %d\n', 1);
-fprintf(fid, 'SUB_Data = %s\n', basename(dataFile));
-fprintf(fid, 'SUB_Design = %s\n', basename(designFile));
+fprintf(fid, 'SUB_Data = %s\n', fnirs1.utils.basename(dataFile));
+fprintf(fid, 'SUB_Design = %s\n', fnirs1.utils.basename(designFile));
 fprintf(fid, 'SUB_Freq = %d\n', samplingRate);
 fprintf(fid, 'SubSamp_Freq = %d\n', downSampleRate);
 end

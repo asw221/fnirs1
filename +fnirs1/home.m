@@ -1,10 +1,9 @@
 
 function p = home
-% Return the fnirs1 install path
-info = what('fnirs1');
-if ~isempty(info)
-    p = info.path;
-else
-    p = '';
+% Returns the fnirs1 install path
+persistent fp_;
+if isempty(fp_)
+    fp_ = fileparts(mfilename('fullpath'));
 end
+p = fp_;
 end

@@ -105,7 +105,7 @@ for i = 1:length(setupFiles)
         % fnirs1.fitDlm(basename(setupFiles{i}));
         cmd = sprintf('%s %s', ...
             fullfile(fnirs1.home, 'include', 'fnirsdlm'), ...
-            basename(setupFiles{i}));
+            fnirs1.utils.basename(setupFiles{i}));
         status = system(cmd, '-echo');
         success(i) = ~logical(status);
     catch ME
@@ -133,15 +133,16 @@ if (any(success))
             setupDir = fileparts(loginfo(i).folder);
             summaries(i) = summaries(i).read_from_file(...
                 fullfile(loginfo(i).folder, loginfo(i).name));
-            summaries(i).Nickname = basename(setupDir);
+            summaries(i).Nickname = fnirs1.utils.basename(setupDir);
             
             % zip successful folders and delete un-zipped versions
             try
                 zip(setupDir, setupDir);
+                % Remove the unzipped copy
+                remove_folder_and_contents(setupDir);
             catch ME
                 warning(ME.message);
             end
-            remove_folder_and_contents(setupDir);
         end
     else
         warning('Cannot locate ''Parameter_Estimates.log'' file(s)');

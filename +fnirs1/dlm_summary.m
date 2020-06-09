@@ -21,6 +21,7 @@ classdef dlm_summary
         Level;         % Credible interval probability width
         LogFiles;      % List (cellstr) of analysis's MCMC log files
         LogFileDir;    % Analysis directory
+        Outcome;       % Outcome type {'hbo', 'hbr', 'hbt'}
         Samples;       % MCMC samples from main analysis
         StdErrors;     % Standard error of each Estimate
     end
@@ -47,6 +48,7 @@ classdef dlm_summary
             obj.Level = 0.95;
             obj.LogFiles = {};
             obj.LogFileDir = {};
+            obj.Outcome = 'hbo';
             obj.Samples = '';
             obj.StdErrors = [];
             
@@ -69,11 +71,13 @@ classdef dlm_summary
         function obj = add_contrast(obj, C)
             con = fnirs1.contrast(C);
             moreFilesNeeded = false;
-            if (size(con.Vectors, 1) < size(obj.Samples, 2))
+            modelParamIndex = ~fnirs1.utils.regexpl(obj(1).Descriptions, ...
+                '^Contrast: ');
+            if (size(con.Vectors, 1) < size(obj(1).Samples, 2))
                 con.Vectors = vertcat(con.Vectors, ...
-                    zeros(size(obj.Samples, 2) - size(con.Vectors, 1), ...
+                    zeros(size(obj(1).Samples, 2) - size(con.Vectors, 1), ...
                     size(con.Vectors, 2)));
-            elseif (size(con.Vectors, 1) > size(obj.Samples, 2))
+            elseif (size(con.Vectors, 1) > size(obj(1).Samples, 2))
                 if (obj(1).GroupAnalysis)
                     moreFilesNeeded = true;
                 else
@@ -81,12 +85,14 @@ classdef dlm_summary
                 end
             end
             if (~moreFilesNeeded)
+                % --- Everything we need is in obj(:).Samples -------------
                 if (obj(1).GroupAnalysis)
                     con.Names = erase(obj(1).Descriptions(...
-                        regexpl(obj(1).Descriptions, '^Population Estimate:')), ...
-                        'Population Estimate: ');
+                        fnirs1.utils.regexpl( obj(1).Descriptions(modelParamIndex), ...
+                        '^Population Effect:' )), ...
+                        'Population Effect: ');
                 else
-                    con.Names = abbreviate(obj(1).Descriptions);
+                    con.Names = obj(1).Descriptions(modelParamIndex);
                 end
                 for i = 1:numel(obj)
                     BcHat = obj(i).Samples * con.Vectors;
@@ -103,10 +109,85 @@ classdef dlm_summary
                         obj(i).StdErrors];
                 end
             else
-                modelParamIndex = ~regexpl(obj(1).Descriptions, ...
-                    '^Contrast: ');
-                groupLevel = regexpl(obj(1).Descriptions(...
-                    modelParamIndex), '^Population Estimate:');
+                % --- More files are needed -------------------------------
+                % Need to load subject-specific _beta.log files. This
+                % should only be a possibility for group-level analyses
+                if (~obj(1).GroupAnalysis)
+                    error('DlmSummary:AddContrast:length2', ...
+                        'Contrast vector longer than model parameters');
+                end
+                if (size(con.Vectors, 1) > sum(modelParamIndex))
+                    error('DlmSummary:AddContrast:length3', ...
+                        'Contrast vector longer than model parameters');
+                end
+                
+                nV = size(con.Vectors, 1);
+                groupLevelIndex = fnirs1.utils.regexpl(...
+                    obj(1).Descriptions(modelParamIndex), ...
+                    '^Population Effect:');
+                
+                % Find parameters not associated with obj.Samples
+                paramsWithMissingSamples = obj(1).Descriptions(...
+                    modelParamIndex);
+                paramsWithMissingSamples = paramsWithMissingSamples(1:nV);
+                groupLevelIndex = groupLevelIndex(1:nV);
+                paramsWithMissingSamples = paramsWithMissingSamples(...
+                    ~groupLevelIndex);
+                
+                % Construct list of files we need to look for
+                filesNeeded = cell(size(paramsWithMissingSamples));
+                for i = 1:numel(filesNeeded)
+                    filesNeeded{i} = deblank(strsplit(...
+                        paramsWithMissingSamples{i}, 'Cond_'));
+                    filesNeeded{i} = sprintf('%s_beta.log', ...
+                        filesNeeded{i}{1});
+                end
+                filesNeeded = unique(filesNeeded);
+                
+                % Loop over channels, try to find necessary MCMC output
+                for i = 1:numel(obj)
+                    conCpy = con;
+                    try
+                        chDir = fileparts(obj(i).LogFileDir);
+                        zipDir = sprintf('%s.zip', chDir);
+                        chDirExists = exist(chDir, 'dir');
+                        zipDirExists = exist(zipDir, 'file');
+                        if (zipDirExists && ~chDirExists)
+                            unzip(zipDir, fileparts(chDir));
+                        end
+                        chFilesNeeded = fullfile(obj(i).LogFileDir, ...
+                            filesNeeded);
+                        datC = cell(size(chFilesNeeded));
+                        for j = 1:numel(chFilesNeeded)
+                            datC{j} = load(chFilesNeeded{j});
+                        end
+                        X = [obj(i).Samples, cat(2, datC{:})];
+                        conCpy.Vectors = vertcat(con.Vectors, ...
+                            zeros(size(X, 2) - nV, size(con.Vectors, 2)));
+                        conCpy.Names = obj(i).Descriptions(modelParamIndex);
+                        
+                        % Add contrasts to model summary
+                        BcHat = X * conCpy.Vectors;
+                        p = (1 - obj(i).Level) / 2 * [1 -1] + [0 1];
+                        Q = quantile(BcHat, p);
+                        if (size(BcHat, 2) > 1)
+                            Q = Q';
+                        end
+                        obj(i).Descriptions = [cellstr("Contrast: " + ...
+                            string(conCpy)); obj(i).Descriptions];
+                        obj(i).Estimates = [mean(BcHat)'; obj(i).Estimates];
+                        obj(i).Intervals = [Q; obj(i).Intervals];
+                        obj(i).StdErrors = [std(BcHat)'; ...
+                            obj(i).StdErrors];
+                        
+                        % Remove any unzipped files
+                        if (zipDirExists && ~chDirExists) % i.e. beforehand
+                            remove_folder_and_contents(chDir);
+                        end
+                    catch ME
+                        warning(ME.identifier, '%s', ME.message);
+                    end
+                end
             end
         end
         function disp(obj)
@@ -119,7 +200,8 @@ classdef dlm_summary
                     fprintf('%s\n', header);
                     fprintf('%s\n', repmat('-', 1, obj(j).PrintWidth));
                     for i = 1:P
-                        descrip = sprintf(obj(j).FormatDescrip, obj(j).Descriptions{i});
+                        descrip = sprintf(obj(j).FormatDescrip, ...
+                            fnirs1.utils.abbreviate(obj(j).Descriptions{i}));
                         descrip = descrip(1:min(length(descrip), obj(j).DescripPrintWidth - 2));
                         est = sprintf(obj(j).FormatEstimate, obj(j).Estimates(i));
                         est = est(1:min(length(est), obj(j).EstimatePrintWidth - 1));
@@ -165,7 +247,7 @@ classdef dlm_summary
             % Read data from a Parameter_Estimates.log file and extract
             % parameter estimates and inferential summaries
             
-            obj.LogFileDir = basename(file);
+            obj.LogFileDir = fileparts(file);
             if (isempty(obj.LogFileDir) || ...
                     strcmp(obj.LogFileDir, './') || ...
                     strcmp(obj.LogFileDir, file))
@@ -173,6 +255,27 @@ classdef dlm_summary
             end
             lfd = dir(fullfile(obj.LogFileDir, '*_beta.log'));
             obj.LogFiles = fullfile(obj.LogFileDir, {lfd(:).name}');
+            obj.Nickname = fnirs1.utils.basename(fileparts(obj.LogFileDir));
+            
+            % Identify outcome type
+            outcomeTypes = {};
+            if (any(fnirs1.utils.regexpl(obj.LogFiles, '_hbr_')))
+                outcomeTypes = [outcomeTypes, {'hbr'}];
+                obj.Outcome = 'hbr';
+            elseif (any(fnirs1.utils.regexpl(obj.LogFiles, '_hbt_')))
+                outcomeTypes = [outcomeTypes, {'hbt'}];
+                obj.Outcome = 'hbt';
+            elseif (any(fnirs1.utils.regexpl(obj.LogFiles, '_hbo_')))
+                outcomeTypes = [outcomeTypes, {'hbo'}];
+                obj.Outcome = 'hbo';
+            end
+            if (isempty(outcomeTypes))
+                warning('Outcome type not identified in log files');
+            elseif (numel(outcomeTypes) > 1)
+                warning('Multiple outcome types appear in log file names: %s', ...
+                    strjoin(outcomeTypes));
+            end
+            
             
             % Read file into cell array and clean up lines
             lines = fnirs1.read_whole_file(file);
@@ -325,8 +428,8 @@ classdef dlm_summary
                 % Attempt to find correct file for single subject
                 obj.Samples = 0;
                 for i = 1:length(lfd)
-                    if ~(regexpl(lfd(i).name, '^sub_') || ...
-                            regexpl(lfd(i).name, '^pop_beta'))
+                    if ~(fnirs1.utils.regexpl(lfd(i).name, '^sub_') || ...
+                            fnirs1.utils.regexpl(lfd(i).name, '^pop_beta'))
                         if all(obj.Samples == 0)
                             obj.Samples = load(obj.LogFiles{i}, '-ascii');
                         end
@@ -336,6 +439,15 @@ classdef dlm_summary
                     obj.Samples = [];
                     warning('Could not locate participant''s MCMC ouptut file');
                 end
+            end
+        end
+        function obj = set.Nickname(obj, nname)
+            try
+                nname = char(nname);
+                obj.Nickname = nname;
+            catch ME
+                warning('DlmSummary:SetNickname', ...
+                    'Nickname property must be coercible to char');
             end
         end
         function tbl = table(obj, varargin)
@@ -364,7 +476,11 @@ classdef dlm_summary
                 end
             end
             if ~isempty(obj)
-                Channel = cellstr(vertcat(obj(:).Nickname));
+                Channel = vertcat(obj(:).Nickname);
+                if (isempty(Channel))
+                    Channel = string(1:numel(obj));
+                end
+                Channel = cellstr(Channel);
                 tbl = array2table(horzcat(obj(:).(prop))', ...
                     'VariableNames', ...
                     matlab.lang.makeValidName(obj(1).Descriptions), ...
