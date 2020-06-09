@@ -421,7 +421,8 @@ classdef dlm_summary
             % TempDeriv_1, ..., HRF_n, TempDeriv_n]. Reorder Estimates,
             % SE's and intervals:
             tempDerivInd = fnirs1.utils.regexpl(...
-                obj.Descriptions, 'TempDeriv');
+                obj.Descriptions, 'TempDeriv') & ...
+                ~fnirs1.utils.regexpl(obj.Descriptions, 'Population');
             if (any(tempDerivInd))
                 obj.Descriptions = [obj.Descriptions(~tempDerivInd); ...
                     obj.Descriptions(tempDerivInd)];

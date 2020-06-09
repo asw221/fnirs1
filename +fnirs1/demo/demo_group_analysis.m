@@ -32,6 +32,32 @@ fit = fnirs1.dlm(data_files, ...
     'GroupData', demo, ...
     'GroupFormula', 'ID ~ Task * Cond + LWIDraw + Age', ...
     'DownSampleRate', 10, ...
-    'SpecificChannels', 9, ...
-    'McmcControl', fnirs1.mcmc_control(30, false));
+    'SpecificChannels', 9:10, ...
+    'McmcControl', fnirs1.mcmc_control(100, true));
+
+
+%% Add Contrasts:
+% Group Level Parameters are:
+% >> fit(1).Descriptions(1:11)
+% ans =
+%   11×1 cell array
+%     {'Population Effect: Task_1'       }
+%     {'Population Effect: LWIDraw'      }
+%     {'Population Effect: Age'          }
+%     {'Population Effect: Task_2'       }
+%     {'Population Effect: Cond_2'       }
+%     {'Population Effect: Cond_3'       }
+%     {'Population Effect: Task_2:Cond_2'}
+%     {'Population Effect: Task_2:Cond_3'}
+%     {'Population Effect: TempDeriv_1'  }
+%     {'Population Effect: TempDeriv_2'  }
+%     {'Population Effect: TempDeriv_3'  }
+%
+% Condition 2 > Condition 1 in Task 1 is already the main effect of
+% Condition 2. Let's add C2 > C1 in Task 2
+%
+
+v = [0 0 0 1 1 0 1 0] - [0 0 0 1 0 0 0 0]; 
+% v auto-padded with trailing 0's to correct length
+fit = add_contrast(fit, v);
 
