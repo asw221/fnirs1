@@ -188,7 +188,9 @@ if (groupAnalysis)
         % Parse group covariates matrix
         design = fnirs1.mixed_effects_design(options.GroupData, ...
             options.GroupFormula);
-        design = design.reformat_base_condition;
+        if (fnirs1.utils.regexpl(options.GroupFormula, 'Cond'))
+            design = design.reformat_base_condition('Cond');
+        end
         options.GroupCovariates = designMatrix(design, 'Fixed');
         options.GroupCovariateNames = design.CoefficientNames;
     end
@@ -220,8 +222,12 @@ if (options.McmcControl.includeDerivatives)
 end
 
 % Setup output directory and write data 
-outdir = fullfile(pwd, sprintf('_fnirs_%s_data_', ...
-    datetime('now', 'TimeZone', 'local', 'Format', 'd-MMM-y-HH-mm-ss-SSS')));
+% Trying to create file names that may help avoid output directory
+% collisions if running multiple Matlab sessions. I'm not sure there's a 
+% purely error free way to do this
+outdir = fullfile(pwd, sprintf('_fnirs_%s_%s', ...
+    datetime('now', 'TimeZone', 'local', 'Format', 'd-MMM-y-HH-mm-ss-SSS'), ...
+    fnirs1.utils.basename(tempname)));
 if (~exist(outdir, 'dir'))
     mkdir(outdir);
 end

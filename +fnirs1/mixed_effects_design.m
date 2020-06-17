@@ -16,6 +16,7 @@ classdef mixed_effects_design
        CoefficientNames;     % Names of fixed effects coefficients
        FixedEffectsMatrix;   % Fixed effects design matrix
        Formula;              % Formula the object was constructed with
+       HasIntercept;         % Logical true if model has a global intercept
        MainEffect;           % Logical (fixed) main effects index
        RandomEffectsMatrix;  % Random effects design matrix
        VariableInfo;         % Table of variable information
@@ -52,6 +53,7 @@ classdef mixed_effects_design
            obj.CoefficientNames = dummyLme.CoefficientNames;
            obj.FixedEffectsMatrix = designMatrix(dummyLme, 'Fixed');
            obj.Formula = dummyLme.Formula;
+           obj.HasIntercept = contains('(Intercept)', obj.CoefficientNames);
            obj.MainEffect = ~contains(obj.CoefficientNames, ':');
            [~, obj.RandomEffectsNameInfo] = randomEffects(dummyLme);
            obj.RandomEffectsMatrix = designMatrix(dummyLme, 'Random');
@@ -95,7 +97,7 @@ classdef mixed_effects_design
                    obj.RandomEffectsNameInfo.Name{i});
            end
        end
-       function obj = reformat_base_condition(obj)
+       function obj = reformat_base_condition(obj, varargin)
            % Reformats the fixed effect matrix base condition in a model
            % with categorical predictors (so that the base is the first
            % condition in the first appearing categorical main effect).
@@ -103,21 +105,48 @@ classdef mixed_effects_design
            % supporting ANOVA-type coded designs
            %
            
+           relevelCondition = '';
+           if (nargin > 1)
+               try
+                   relevelCondition = char(varargin{1});
+               catch ME
+                   error(ME.identifier, '%s', ME.message);
+               end
+           end
+           
            X = obj.FixedEffectsMatrix;
            dummyColumns = logical(size(X, 2));
            for j = 1:size(X, 2)
                u = unique(X(:, j));
                dummyColumns(j) = all((u == 1) | (u == 0));
            end
-           dummyColumns = find(dummyColumns & obj.MainEffect);
-           if (numel(dummyColumns) > 1)
-               baseConditionIndex = dummyColumns(2);
+           if ~isempty(relevelCondition)
+               dummyColumns = find(dummyColumns & obj.MainEffect & ...
+                   (fnirs1.utils.regexpl(obj.CoefficientNames, ...
+                   relevelCondition) | ...
+                   fnirs1.utils.regexpl(obj.CoefficientNames, ...
+                   '(Intercept)')));
+           else
+               dummyColumns = find(dummyColumns & obj.MainEffect);
+           end
+           % From above: note that we're not considering any interaction
+           % terms
+           if isempty(dummyColumns)
+               warning('reformat_base_condition:CatNotFound', ...
+                   'Categories not found');
+           elseif (numel(dummyColumns) > 1)
+               if (obj.HasIntercept)
+                   baseConditionIndex = dummyColumns(2);
+               else
+                   baseConditionIndex = dummyColumns(1);
+               end
                baseConditionName = strsplit(...
                    obj.CoefficientNames{baseConditionIndex}, '_');
                baseConditionName = sprintf('%s_%s', ...
                    baseConditionName{1}, ...
                    obj.Categories.(baseConditionName{1}){1});
-               X(:, 1) = X(:, 1) - X(:, baseConditionIndex);
+               X(:, 1) = ones(size(X, 1), 1) - ...
+                   sum(X(:, dummyColumns(2:end)), 2);
                obj.CoefficientNames{1} = baseConditionName;
                obj.FixedEffectsMatrix = X;
            end

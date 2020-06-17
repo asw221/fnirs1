@@ -6,6 +6,9 @@ function files = get_data_files()
 % Example usage:
 %   files = fnirs1.get_data_files;
 %
+if ~(fnirs1.utils.interactive)
+    error('fnirs1.get_data_files cannot launch GUI for file selection');
+end
 [files, path] = uigetfile(fullfile(last_path, '*'), ...
     'Select data file(s)', 'MultiSelect', 'on');
 if (isnumeric(files))

@@ -101,6 +101,7 @@ for i = 1:length(setupFiles)
     if (exist(fullfile(setupPath, 'log'), 'dir'))
         remove_folder_and_contents(fullfile(setupPath, 'log'));
     end
+    
     try 
         % fnirs1.fitDlm(basename(setupFiles{i}));
         cmd = sprintf('%s %s', ...
