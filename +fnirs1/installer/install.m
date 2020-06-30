@@ -102,7 +102,7 @@ end
 % --- Cleanup and checks --------------------------------------------------
 % Return to original directory
 cd ./+fnirs1/installer
-clear CXX CXXFLAGS FFTW_HOME FFTW_LIB FILES INC LIB LINK OBJECTS makefileid status
+clear CXX CXXFLAGS FFTW_HOME FFTW_LIB FILES INC LIB LINK OBJECTS OMPLINK makefileid status
 
 
 % Print warning message if Statistics and Machine Learning Toolbox is not
