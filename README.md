@@ -32,6 +32,11 @@ especially if I can make the help pages more clear.
 	 Thread model: posix
 	 InstalledDir: /Library/Developer/CommandLineTools/usr/bin
 	 ```
+ - [OpenMP](https://www.openmp.org) may need to be installed if
+   running on a Mac. Most up-to-date C/C++ compilers on a Linux
+   machine will already support OpenMP, and nothing else need be done
+   - On a Mac with homebrew, the command is `brew
+	 install libomp`
 
 ### Installation
 As part of `fnirs1`, we provide an install script for convenient

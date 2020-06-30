@@ -49,7 +49,8 @@ FILES = ['main.cpp mcmc.cpp cholesky.cpp randgen.cpp mybspline.cpp ', ...
 OBJECTS = strrep(FILES, '.cpp', '.o');
 
 % strrep
-CXXFLAGS = '-g -O2 -Wall';
+% CXXFLAGS = '-g -O2 -Wall';
+CXXFLAGS = '-g -O2';
 INC = ['-I', FFTW_HOME];
 LIB = ['-L', FFTW_LIB];
 
