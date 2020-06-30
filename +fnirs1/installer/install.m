@@ -29,7 +29,7 @@ if (~exist(fullfile(FFTW_HOME, 'fftw3.h'), 'file'))
     error('Could not locate ''fftw3.h'' in ''%s''', FFTW_HOME);
 end
 if ~(numel(dir(fullfile(FFTW_LIB, 'libfftw*'))) >= 1)
-    error('Could not locate ''fftw3.h'' in ''%s''', FFTW_HOME);
+    error('Could not locate fftw3 libraries in ''%s''', FFTW_LIB);
 end
 
 
@@ -49,7 +49,7 @@ FILES = ['main.cpp mcmc.cpp cholesky.cpp randgen.cpp mybspline.cpp ', ...
 OBJECTS = strrep(FILES, '.cpp', '.o');
 
 % strrep
-CXXFLAGS = '-O2 -Wall';
+CXXFLAGS = '-g -O2 -Wall';
 INC = ['-I', FFTW_HOME];
 LIB = ['-L', FFTW_LIB];
 

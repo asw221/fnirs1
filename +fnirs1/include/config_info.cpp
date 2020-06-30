@@ -199,7 +199,9 @@ void load_config_info(POP *pop,const char *config_file,unsigned long *seed)
         }
         else if (!strcmp(C,"Include_temporal_derivative")) {
             while ((C = strtok(NULL," ")) != NULL) {
-                if (atoi(C) == 1)
+                if (atoi(C) == 2)
+                    pop->Nb = 3;
+                else if (atoi(C) == 1)
                     pop->Nb = 2;
                 else 
                     pop->Nb = 1;
@@ -486,11 +488,12 @@ void load_data_structs(POP *pop,int PPP)
                 rep->Y[i] -= mean;  
             for (int i=0;i<N;i++)
                 rep->Y[i] /= sd/5.;         
+   
             sdcnt += 1;      
         }
     }
     SD = sqrt(SD)/sdcnt;
- 
+    
     for (int isub=0;isub<pop->N_SUBS;isub++) {
         sub = &(pop->sub[isub]);
         for (int irep=0;irep<sub->N_REPS;irep++) {

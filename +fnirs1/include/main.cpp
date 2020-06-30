@@ -60,12 +60,13 @@ int main (int argc, const char * argv[]) {
         printf("Kernel %s not supported",S);
         exit(0);
     }
-    iss = fscanf(fnthread,"%d\n",&nthd_sys);
+    rewind(fnthread);
+    iss = fscanf(fnthread,"%s\n %d",S,&nthd_sys);
     iss = system("rm mnt_xyz");
     fclose(fnthread);
     
 
-    fprintf(flog,"Kernel: %s, Number of Threads = %d\n",S,nthd_sys);
+    fprintf(flog,"Kernel: %s, Number of Threads = %3d\n",S,nthd_sys);
 
     load_config_info(pop,argv[1],seed);
  

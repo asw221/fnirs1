@@ -219,6 +219,28 @@ classdef dlm_summary
                 end  % if (~isempty(obj(j).Estimate))
             end  % for ob = obj
         end
+        function G = geweke(obj)
+            G = table();
+            if ~isempty(obj)
+                M = size(obj(1).Samples, 2);
+                N = numel(obj);
+                t = NaN(M, N);  % Geweke statistic
+                ESS = NaN(M, N);
+                Identifier = cell(M, N);
+                Parameter = cell(M, N);
+                for i = 1:N
+                    t(:, i) = fnirs1.mcmc.geweke(obj(i).Samples);
+                    ESS(:, i) = fnirs1.mcmc.ess(obj(i).Samples);
+                    Identifier(:, i) = repmat({obj(i).Nickname}, M, 1);
+                    Parameter(:, i) = obj(i).Descriptions(1:M);
+                end
+                Identifier = reshape(Identifier, N * M, 1);
+                Parameter = reshape(Parameter, N * M, 1);
+                ESS = reshape(ESS, N * M, 1);
+                t = reshape(t, N * M, 1);
+                G = table(Identifier, Parameter, ESS, t);
+            end
+        end
         function obj = head(obj, varargin)
             % Extract only the first N items from an fnris1.dlm_summary
             % object. By default, N = 6
@@ -240,6 +262,12 @@ classdef dlm_summary
         function B = isempty(obj)
             % Returns logical true of object does not contain any data
             B = isempty(horzcat(obj(:).Estimates));
+        end
+        function N = parameter_names(obj)
+            % Return cellstr of model parameter names
+            I = ~fnirs1.utils.regexpl(obj(1).Descriptions, '^Contrast: ');
+            N = erase(obj(1).Descriptions(I), ...
+                'Population Effect: ');
         end
         function obj = read_from_file(obj, file)
             % Read data from a Parameter_Estimates.log file and extract
@@ -519,6 +547,30 @@ classdef dlm_summary
                     'RowNames', Channel);
             else
                 tbl = table();
+            end
+        end
+        function H = traceplot(obj)
+            % Create MCMC traceplots of primary model parameters
+            if isempty(obj)
+                error('Object contains no data to plot');
+            else
+                if (numel(obj) > 1)
+                    warning('dlm_summary:PlotMultiChannel', ...
+                        '%s %s (''%s'')', ...
+                        'Object contains data from multiple channels.', ...
+                        'Plotting only the first', obj(1).Nickname);
+                end
+            end
+            M = max(floor(sqrt(size(obj(1).Samples, 2))), 1);
+            N = ceil(size(obj(1).Samples, 2) / M);
+            H = figure;
+            nms = strrep(obj(1).parameter_names(), '_', ' ');
+            T = size(obj(1).Samples, 1);
+            for i = 1:size(obj(1).Samples, 2)
+                subplot(M, N, i);
+                plot(1:T, obj(1).Samples(:, i), '-k');
+                xlabel('Iteration');
+                title(nms{i});
             end
         end
     end

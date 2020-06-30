@@ -16,6 +16,8 @@
 #include <time.h>
 #include "fNIRS.h"
 
+#include <iostream>
+
 extern int MAX_ITER;
 extern int BURN_IN;
 extern int maxP;
@@ -119,9 +121,16 @@ void mcmc(POP *pop,unsigned long *seed) {
         }
     }
  
-    int nthd = (int)ceil((pop->N_SUBS*pop->No_replicates)/(int)ceil((pop->N_SUBS*pop->No_replicates)/(double)nthd_sys));
+    int nthd = (int)ceil(
+			 (pop->N_SUBS * pop->No_replicates) /
+			 (int)ceil((pop->N_SUBS * pop->No_replicates) / (double)nthd_sys)
+			 );
     if (pop->N_SUBS == 1)
         nthd = 1;
+
+    std::cout << "nthd = " << nthd << std::endl;
+    std::cout << "nthd_sys = " << nthd_sys << std::endl;
+    
     omp_set_num_threads(nthd);
 
     int *v = (int *)malloc(NN*sizeof(int));
