@@ -16,7 +16,6 @@
 #include <time.h>
 #include "fNIRS.h"
 
-#include <iostream>
 
 extern int MAX_ITER;
 extern int BURN_IN;
@@ -135,11 +134,6 @@ void mcmc(POP *pop,unsigned long *seed) {
 
     int *v = (int *)malloc(NN*sizeof(int));
 
-//     // Andrew (4):
-//     int imax, flag = 0;
-// #pragma omp parallel prifate(j, k, imax, flag)
-//     {
-// #pragma omp barrier
     for (iter=0;iter<=MAX_ITER;iter++) {
         if (!(iter%100)) { 
             printf("%d",iter);
@@ -151,22 +145,14 @@ void mcmc(POP *pop,unsigned long *seed) {
         }
        
 
-	// Andrew, comment (+2):
-        // int imax,flag = 0;
-	imax = 0;
-	flag = 0;
+        int imax,flag = 0;
         for (int i=0;i<NN;i++)
             v[i] = i;
         permute_sample_int(v,NN,seed);
       
 #pragma omp parallel for private(j,k,imax,flag)
         for (i=0;i<NN;i++) {
-            if (iter == 0) {
-
-	      std::cout << "i = " << i << ",  " << "iThread = "
-			<< ( ::omp_get_thread_num() )
-			<< std::endl;
-	      
+            if (iter == 0) {	      
 //                draw_beta_eta(pop,tmpsub[subidx[v[i]]],tmprep[v[i]],seed);
                 for (j=0;j<50;j++) {//printf("j = %d v[i] = %d\n",j,v[i]);
                     tmprep[v[i]]->P = 0;
@@ -229,17 +215,15 @@ void mcmc(POP *pop,unsigned long *seed) {
 //            draw_dY(tmprep[i],seed);
 //            draw_precY(tmprep[i],seed);        
         }
-	// #pragma omp barrier  // -- Andrew
          
         if (pop->GRP) {
             draw_re_rep_prec(pop,pop->sub,seed);
             
             int isub2;
             if (!pop->No_replicates) {
-                #pragma omp parallel for
+	      // #pragma omp parallel for
                 for (isub2=0;isub2<pop->N_SUBS;isub2++)
                     draw_sub_beta(pop,tmpsub[isub2],seed);
-		// #pragma omp barrier  // -- Andrew
  
                 draw_reprec(pop,pop->sub,seed);
             } 
@@ -441,7 +425,6 @@ void mcmc(POP *pop,unsigned long *seed) {
             fflush(NULL);      
         }
     }
-    }  // -- Andrew (close omp parallel section)
     free(v);
     free(tmprep);
     free(tmpsub);

@@ -56,9 +56,9 @@ LIB = ['-L', FFTW_LIB];
 
 LINK = '-lfftw3 -lfftw3_threads -lm';
 if (ismac)
-    LINK = [LINK, ' -Xpreprocessor -fopenmp -lomp'];
+    OMPLINK = '-Xpreprocessor -fopenmp -lomp';
 elseif (isunix)
-    LINK = [LINK, ' -fopenmp'];
+    OMPLINK = '-fopenmp';
 end
 
 
@@ -77,9 +77,10 @@ fprintf(makefileid, 'OBJ      := %s\n', OBJECTS);
 fprintf(makefileid, 'CXXFLAGS := %s\n', CXXFLAGS);
 fprintf(makefileid, 'INC      := %s\n', INC);
 fprintf(makefileid, 'LIB      := %s\n', LIB);
-fprintf(makefileid, 'LINK     := %s\n\n', LINK);
-fprintf(makefileid, 'all: $(OBJ)\n\t$(CXX) $(CXXFLAGS) $(OBJ) $(LIB) $(LINK) -o fnirsdlm\n\n');
-fprintf(makefileid, '$(OBJ): $(SRC)\n\t$(CXX) -c $(CXXFLAGS) $(SRC)\n\n');
+fprintf(makefileid, 'LINK     := %s\n', LINK);
+fprintf(makefileid, 'OMPLINK  := %s\n\n', OMPLINK);
+fprintf(makefileid, 'all: $(OBJ)\n\t$(CXX) $(CXXFLAGS) $(OBJ) $(LIB) $(LINK) $(OMPLINK) -o fnirsdlm\n\n');
+fprintf(makefileid, '$(OBJ): $(SRC)\n\t$(CXX) -c $(CXXFLAGS) $(SRC) $(OMPLINK)\n\n');
 fprintf(makefileid, '{OBJ}: cholesky.h randgen.h\n\n');
 fprintf(makefileid, 'clean:\n\trm -f fnirsdlm *.o\n');
 fclose(makefileid);

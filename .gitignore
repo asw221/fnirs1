@@ -8,7 +8,7 @@
 +fnirs1/*.mexmaci64
 +fnirs1/*.cpp
 +fnirs1/include/*.o
-+fnirs1/include/Makefile
+## +fnirs1/include/Makefile
 
 
 # Ignore Mac specific files
