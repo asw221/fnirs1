@@ -107,6 +107,6 @@ clear CXX CXXFLAGS FFTW_HOME FFTW_LIB FILES INC LIB LINK OBJECTS OMPLINK makefil
 
 % Print warning message if Statistics and Machine Learning Toolbox is not
 % available
-if (~fnirs1.sml_toolbox_available)
+if (~fnirs1.utils.sml_toolbox_available)
     warning('Statistics and Machine Learning Toolbox may not be available');
 end

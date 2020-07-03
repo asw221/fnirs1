@@ -16,7 +16,6 @@
 #include <time.h>
 #include "fNIRS.h"
 
-
 extern int MAX_ITER;
 extern int BURN_IN;
 extern int maxP;
@@ -120,20 +119,15 @@ void mcmc(POP *pop,unsigned long *seed) {
         }
     }
  
-    int nthd = (int)ceil(
-			 (pop->N_SUBS * pop->No_replicates) /
-			 (int)ceil((pop->N_SUBS * pop->No_replicates) / (double)nthd_sys)
-			 );
+    int nthd = (int)ceil((pop->N_SUBS*pop->No_replicates)/(int)ceil((pop->N_SUBS*pop->No_replicates)/(double)nthd_sys));
     if (pop->N_SUBS == 1)
         nthd = 1;
-
-    // std::cout << "nthd = " << nthd << std::endl;
-    // std::cout << "nthd_sys = " << nthd_sys << std::endl;
     
-    omp_set_num_threads(nthd);
+    ::omp_set_dynamic(0);
+    ::omp_set_num_threads(nthd);
 
     int *v = (int *)malloc(NN*sizeof(int));
-
+    
     for (iter=0;iter<=MAX_ITER;iter++) {
         if (!(iter%100)) { 
             printf("%d",iter);
@@ -150,9 +144,9 @@ void mcmc(POP *pop,unsigned long *seed) {
             v[i] = i;
         permute_sample_int(v,NN,seed);
       
-#pragma omp parallel for private(j,k,imax,flag)
+        #pragma omp parallel for private(j,k,imax,flag)
         for (i=0;i<NN;i++) {
-            if (iter == 0) {	      
+            if (iter == 0) {
 //                draw_beta_eta(pop,tmpsub[subidx[v[i]]],tmprep[v[i]],seed);
                 for (j=0;j<50;j++) {//printf("j = %d v[i] = %d\n",j,v[i]);
                     tmprep[v[i]]->P = 0;
@@ -192,7 +186,7 @@ void mcmc(POP *pop,unsigned long *seed) {
           
                     imax = tmprep[v[i]]->nKnots-sdegree*2;
                     for (k=0;k<imax;k++) 
-                    draw_knot_locations(tmprep[v[i]],sdegree,&flag,seed);
+                        draw_knot_locations(tmprep[v[i]],sdegree,&flag,seed);
                     
 //                  end = clock();
 //                if (!(iter%100)) printf("draw knots time = \t%lf\t knots = %d\n",(double)(end-start)/CLOCKS_PER_SEC,imax);
@@ -221,7 +215,7 @@ void mcmc(POP *pop,unsigned long *seed) {
             
             int isub2;
             if (!pop->No_replicates) {
-	      // #pragma omp parallel for
+                #pragma omp parallel for
                 for (isub2=0;isub2<pop->N_SUBS;isub2++)
                     draw_sub_beta(pop,tmpsub[isub2],seed);
  
@@ -333,7 +327,7 @@ void mcmc(POP *pop,unsigned long *seed) {
                 fprintf(flog,"\n\n");
             }
         }
-  //      fflush(flog);
+        fflush(flog);
         
         if ((iter>BURN_IN)) {
             for (isub=0;isub<pop->N_SUBS;isub++) {
@@ -879,7 +873,7 @@ void draw_preceta(REP *rep,unsigned long *seed) {
     b = 0.5*b + BETA;
     
     double tmp = rgamma(a,b,seed);
-    if (tmp < 10)
+    if ((.0001 < tmp) & (tmp < 10))
         rep->preceta = tmp;
 }
 

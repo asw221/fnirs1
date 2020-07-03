@@ -219,20 +219,74 @@ classdef dlm_summary
                 end  % if (~isempty(obj(j).Estimate))
             end  % for ob = obj
         end
+        function D = get_data(obj, what)
+            % Recover stored data from fitted models. Returns a (nested)
+            % struct
+            options = {'beta'; 'delta'; 'DLM'; 'eta'; 'fit'; 'HRF'; ...
+                'knots'; 'nknots'; 'rawres'; 'stdev'; 'veta'; 'wdelta'; ...
+                'Xbeta'; 'X'; 'Y'};
+            
+            if ~any(strcmp(what, options))
+                optstr = strcat(options, {', '});
+                optstr = strcat(optstr{:});
+                error('dlm_summary:GetData:InvalidWhat',...
+                    'dlm_summary/get_data: what must be one of:\n[%s]', ...
+                    optstr);
+            end
+            
+            N = numel(obj(1).LogFiles);
+            D = repmat(struct('name', '', 'data', []), size(obj));
+            for i = 1:numel(obj)
+                chDir = fileparts(obj(i).LogFileDir);  % channel directory
+                zipped = false;
+                if ~exist(obj(i).LogFileDir, 'dir')
+                    try
+                        unzip([chDir '.zip'], fileparts(chDir));
+                        zipped = true;
+                    catch ME
+                        error(ME.message, '%s', ME.identifier);
+                    end
+                end
+                
+                % Try to extract relevant data into nested structs
+                subD = repmat(struct('what', '', 'data', []), N, 1);
+                try
+                    for j = 1:N
+                        currentFile = erase(obj(i).LogFiles{j}, ...
+                            '_beta.log');
+                        currentFile = strcat(currentFile, '_', what, '.log');
+                        subD(j) = struct('what', ...
+                            fnirs1.utils.basename(erase(currentFile, '.log')), ...
+                            'data', load(currentFile, '-ascii'));
+                    end
+                    D(i) = struct('name', obj(i).Nickname, ...
+                        'data', subD);
+                catch ME
+                    error(ME.message, '%s', ME.identifier);
+                end
+                
+                % Clean up unzipped folder if necessary
+                if (zipped)
+                    remove_folder_and_contents(chDir);
+                end
+            end
+        end
         function G = geweke(obj)
             G = table();
             if ~isempty(obj)
                 M = size(obj(1).Samples, 2);
                 N = numel(obj);
+                paramNms = obj.parameter_names();
+                paramNms = paramNms(1:M);
                 t = NaN(M, N);  % Geweke statistic
                 ESS = NaN(M, N);
                 Identifier = cell(M, N);
-                Parameter = cell(M, N);
+                Parameter = repmat(paramNms, 1, N);
                 for i = 1:N
                     t(:, i) = fnirs1.mcmc.geweke(obj(i).Samples);
                     ESS(:, i) = fnirs1.mcmc.ess(obj(i).Samples);
                     Identifier(:, i) = repmat({obj(i).Nickname}, M, 1);
-                    Parameter(:, i) = obj(i).Descriptions(1:M);
+                    % Parameter(:, i) = obj(i).Descriptions(1:M);
                 end
                 Identifier = reshape(Identifier, N * M, 1);
                 Parameter = reshape(Parameter, N * M, 1);
@@ -269,9 +323,185 @@ classdef dlm_summary
             N = erase(obj(1).Descriptions(I), ...
                 'Population Effect: ');
         end
+        function obj = parse_log_directory(obj, log_dir)
+            % Assign object properties from log files
+            
+            obj.LogFileDir = fnirs1.utils.explicit_path(log_dir);
+            obj.Nickname = fnirs1.utils.basename(fileparts(obj.LogFileDir));
+            
+            lfd = dir(fullfile(obj.LogFileDir, '*_beta.log'));
+            if (isempty(lfd))
+                error('dlm_summary:ParseLogs:EmptyLogDir', ...
+                    'Empty log file directory (%s)', obj.LogFileDir);
+            end
+            obj.LogFiles = {lfd(:).name}';
+            obj.LogFiles = obj.LogFiles(~fnirs1.utils.regexpl(...
+                obj.LogFiles, '^sub_'));
+            obj.LogFiles = obj.LogFiles(~fnirs1.utils.regexpl(...
+                obj.LogFiles, 'pop_beta.log'));
+            obj.LogFiles = fullfile(obj.LogFileDir, obj.LogFiles);
+            
+            obj.GroupAnalysis = numel(obj.LogFiles) >= 2;
+            % Hacky, but should only be 1 *_beta.log file per subj
+            obj.Outcome = 'hbo';
+            if any(fnirs1.utils.regexpl(obj.LogFiles, '_hbr_'))
+                obj.Outcome = 'hbr';
+            elseif any(fnirs1.utils.regexpl(obj.LogFiles, '_hbr_'))
+                obj.Outcome = 'hbr';
+            end
+            
+            obj.Level = 0.95;
+            qs = [(1 - obj.Level) / 2, obj.Level + (1 - obj.Level) / 2];
+            
+            if (obj.GroupAnalysis)
+                obj.Samples = load(...
+                    fullfile(obj.LogFileDir, 'pop_beta.log'), '-ascii');
+                
+                obj.Descriptions = fnirs1.utils.read_whole_file(...
+                    fullfile(fileparts(obj.LogFileDir), 'names.txt'));
+                obj.Descriptions = cellstr("Population Effect: " + ...
+                    string(obj.Descriptions));
+                nPopParams = numel(obj.Descriptions);
+                
+                hasTempDeriv = any(fnirs1.utils.regexpl(...
+                    obj.Descriptions, 'TempDeriv'));
+                hasDispDeriv = any(fnirs1.utils.regexpl(...
+                    obj.Descriptions, 'DispDeriv'));
+                
+                obj.Estimates = mean(obj.Samples)';
+                obj.Intervals = quantile(obj.Samples, qs)';
+                obj.StdErrors = std(obj.Samples)';
+                
+                % Fill out subject level data
+                subjBeta = load(obj.LogFiles{1}, '-ascii');
+                P = size(subjBeta, 2);
+                N = numel(obj.LogFiles);
+                subjCoefNames = repmat(" Cond_", P, 1);
+                if (hasDispDeriv)
+                    subjCoefNames = subjCoefNames + ...
+                        repmat(string(1:fix(P/3))', 3, 1) + " HRF";
+                    subjCoefNames((fix(P/3) + 1):(2 * fix(P/3))) = ...
+                        subjCoefNames((fix(P/3) + 1):(2 * fix(P/3))) + ...
+                        " TempDeriv";
+                    subjCoefNames((2 * fix(P/3) + 1):end) = ...
+                        subjCoefNames((2 * fix(P/3) + 1):end) + ...
+                        " DispDeriv";
+                elseif (hasTempDeriv)
+                    subjCoefNames = subjCoefNames + ...
+                        repmat(string(1:fix(P/2))', 2, 1) + " HRF";
+                    subjCoefNames((fix(P/2) + 1):end) = ...
+                        subjCoefNames((fix(P/2) + 1):end) + " TempDeriv";
+                else
+                    subjCoefNames = subjCoefNames + ...
+                        string(1:P)' + " HRF";
+                end
+                subjBlockStart = nPopParams + 1;
+                obj.Descriptions{N * P + nPopParams} = '';
+                obj.Estimates(N * P + nPopParams) = 0;
+                obj.Intervals(N * P + nPopParams, :) = 0;
+                obj.StdErrors(N * P + nPopParams) = 0;
+                for i = 1:N
+                    if (i > 1)
+                        subjBeta = load(obj.LogFiles{i}, '-ascii');
+                    end
+                    subjBlockEnd = subjBlockStart + P - 1;
+                    bn = erase(fnirs1.utils.basename(obj.LogFiles{i}), ...
+                        '_beta.log');
+                    obj.Descriptions(subjBlockStart:subjBlockEnd) = ...
+                        cellstr(string(bn) + subjCoefNames);
+                    obj.Estimates(subjBlockStart:subjBlockEnd) = ...
+                        mean(subjBeta)';
+                    obj.Intervals(subjBlockStart:subjBlockEnd, :) = ...
+                        quantile(subjBeta, qs)';
+                    obj.StdErrors(subjBlockStart:subjBlockEnd) = ...
+                        std(subjBeta)';
+                    subjBlockStart = subjBlockStart + P;
+                end
+            else
+                % Parse single subject model
+                obj.Samples = load(obj.LogFiles{1}, '-ascii');
+                
+                meanParamDescrip = fnirs1.utils.read_whole_file(...
+                    fullfile(fileparts(obj.LogFileDir), 'names.txt'));
+                
+                hasTempDeriv = any(fnirs1.utils.regexpl(...
+                    meanParamDescrip, 'TempDeriv'));
+                hasDispDeriv = any(fnirs1.utils.regexpl(...
+                    meanParamDescrip, 'DispDeriv'));
+                
+                obj.Estimates = mean(obj.Samples)';
+                obj.Intervals = quantile(obj.Samples, qs)';
+                obj.StdErrors = std(obj.Samples)';
+                
+                % Set descriptions
+                P = size(obj.Samples, 2);
+                subjCoefNames = repmat(" Cond_", P, 1);
+                if (hasDispDeriv)
+                    subjCoefNames = subjCoefNames + ...
+                        repmat(string(1:fix(P/3))', 3, 1) + " HRF";
+                    subjCoefNames((fix(P/3) + 1):(2 * fix(P/3))) = ...
+                        subjCoefNames((fix(P/3) + 1):(2 * fix(P/3))) + ...
+                        " TempDeriv";
+                    subjCoefNames((2 * fix(P/3) + 1):end) = ...
+                        subjCoefNames((2 * fix(P/3) + 1):end) + ...
+                        " DispDeriv";
+                elseif (hasTempDeriv)
+                    subjCoefNames = subjCoefNames + ...
+                        repmat(string(1:fix(P/2))', 2, 1) + " HRF";
+                    subjCoefNames((fix(P/2) + 1):end) = ...
+                        subjCoefNames((fix(P/2) + 1):end) + " TempDeriv";
+                else
+                    subjCoefNames = subjCoefNames + ...
+                        string(1:P)' + " HRF";
+                end
+                bn = erase(fnirs1.utils.basename(obj.LogFiles{1}), ...
+                    '_beta.log');
+                obj.Descriptions = cellstr(string(bn) + subjCoefNames);
+            end
+        end
+        function H = plot(obj)
+            % Faceted plot of participants' data and the fitted lines
+            if isempty(obj)
+                error('Object contains no data to plot');
+            else
+                if (numel(obj) > 1)
+                    warning('dlm_summary:PlotMultiChannel', ...
+                        '%s %s (''%s'')', ...
+                        'Object contains data from multiple channels.', ...
+                        'Plotting only the first', obj(1).Nickname);
+                end
+            end
+            Y = obj(1).get_data('Y');
+            fitted = obj(1).get_data('fit');
+            M = max(1, floor(sqrt(numel(Y.data))));
+            N = ceil(numel(Y.data) / M);
+            H = figure;
+            % Find range of Y
+            yrng = [min(Y.data(1).data), max(Y.data(1).data)];
+            if (numel(Y.data) > 1)
+                for i = 1:numel(Y.data)
+                    yrng = [ min([yrng, Y.data(i).data]), ...
+                        max([yrng, Y.data(i).data]) ];
+                end
+            end
+            for i = 1:numel(Y.data)
+                subplot(M, N, i);
+                plot(1:numel(Y.data(i).data), Y.data(i).data, '-k');
+                hold on
+                xlim([1, numel(Y.data(i).data)]);
+                ylim(yrng);
+                plot(1:numel(fitted.data(i).data), ...
+                    fitted.data(i).data, '-r');
+                xlabel('Timepoint');
+                ylabel(upper(obj(1).Outcome));
+                title(strrep(fitted.data(i).what, '_', ' '));
+            end
+        end
         function obj = read_from_file(obj, file)
             % Read data from a Parameter_Estimates.log file and extract
             % parameter estimates and inferential summaries
+            
+            warning('dlm_summary read_from_file method is deprecated');
             
             obj.LogFileDir = fileparts(file);
             if (isempty(obj.LogFileDir) || ...
@@ -304,7 +534,7 @@ classdef dlm_summary
             
             
             % Read file into cell array and clean up lines
-            lines = fnirs1.read_whole_file(file);
+            lines = fnirs1.utils.read_whole_file(file);
             lines = lines(~strcmp(lines, ''));
             if (length(lines) > 2)
                 % last two lines of Parameter_Estimates.log files are notes
@@ -446,18 +676,18 @@ classdef dlm_summary
             % Parameter_Estimates.log order is interleaved: [HRF_1,
             % TempDeriv_1, ..., HRF_n, TempDeriv_n]. Reorder Estimates,
             % SE's and intervals:
-            tempDerivInd = fnirs1.utils.regexpl(...
-                obj.Descriptions, 'TempDeriv') & ...
+            derivInd = fnirs1.utils.regexpl(...
+                obj.Descriptions, 'Deriv') & ...
                 ~fnirs1.utils.regexpl(obj.Descriptions, 'Population');
-            if (any(tempDerivInd))
-                obj.Descriptions = [obj.Descriptions(~tempDerivInd); ...
-                    obj.Descriptions(tempDerivInd)];
-                obj.Estimates = [obj.Estimates(~tempDerivInd); ...
-                    obj.Estimates(tempDerivInd)];
-                obj.StdErrors = [obj.StdErrors(~tempDerivInd); ...
-                    obj.StdErrors(tempDerivInd)];
-                obj.Intervals = [obj.Intervals(~tempDerivInd, :); ...
-                    obj.Intervals(tempDerivInd, :)];
+            if (any(derivInd))
+                obj.Descriptions = [obj.Descriptions(~derivInd); ...
+                    obj.Descriptions(derivInd)];
+                obj.Estimates = [obj.Estimates(~derivInd); ...
+                    obj.Estimates(derivInd)];
+                obj.StdErrors = [obj.StdErrors(~derivInd); ...
+                    obj.StdErrors(derivInd)];
+                obj.Intervals = [obj.Intervals(~derivInd, :); ...
+                    obj.Intervals(derivInd, :)];
             end
             
             % Read in appropriate samples

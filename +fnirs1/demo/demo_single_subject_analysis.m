@@ -9,9 +9,10 @@
 fit = fnirs1.dlm('', ...
     'DownSampleRate', 10, ...
     'SpecificChannels', 4, ...
-    'McmcControl', fnirs1.mcmc_control(3000, true));
+    'McmcControl', fnirs1.mcmc_control(2000, 2));
                     % (McmcControl controls  ^^ TempDeriv specifier)
 
+                    
 %% Alternative route: modular structure
 % This may be useful for organizing analyses and running them later, or for
 % manually tuning a model hyperparameter (like the expected number of

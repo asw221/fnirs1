@@ -107,7 +107,6 @@ double **canonical_HRF(int T,double freq,int *dim_HRF,double m,double var,int ty
                 break;
             case 2: default:
                 HRF[i][0] = const1*pow(x,a1-1)*exp(-b1*x) - const2*pow(x,a2-1)*exp(-b2*x);
-                HRF[i][0] = const1*pow(x,a1-1)*exp(-b1*x) - const2*pow(x,a2-1)*exp(-b2*x);
                 if (i==0) {
                     HRF[i][1] = 0;
                     HRF[i][2] = 0;

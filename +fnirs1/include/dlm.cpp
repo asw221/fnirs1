@@ -354,9 +354,10 @@ void DLMtst(REP *rep,sDLM *dlmStruc,dlm_tst_flag flag,unsigned long *seed) {
     
     double prop_delta,prop_beta;
     double low,high;
+    
     double range = rep->prop_sd[0];
     low = rep->df_delta1 - range;
-    low = (low < 0.000001) ? 0.000001:low;
+    low = (low < 0.75) ? 0.75:low;
     high = rep->df_delta1 + range;
     high = (high > 0.999999) ? 0.999999:high;
    
@@ -365,7 +366,7 @@ void DLMtst(REP *rep,sDLM *dlmStruc,dlm_tst_flag flag,unsigned long *seed) {
         new_logprop = -log(high-low);
  
     low = prop_delta - range;
-    low = (low < 0.000001) ? 0.000001:low;
+    low = (low < 0.75) ? 0.75:low;
     high = prop_delta + range;
     high = (high > 0.999999) ? 0.999999:high;
     if (flag == fdelta1)
@@ -373,7 +374,7 @@ void DLMtst(REP *rep,sDLM *dlmStruc,dlm_tst_flag flag,unsigned long *seed) {
     
     range = rep->prop_sd[1];
     low = rep->df_delta2 - range;
-    low = (low < 0.000001) ? 0.000001:low;
+    low = (low < 0.50) ? 0.50:low;
     high = rep->df_delta2 + range;
     high = (high > 0.999999) ? 0.999999:high;
     
@@ -382,7 +383,7 @@ void DLMtst(REP *rep,sDLM *dlmStruc,dlm_tst_flag flag,unsigned long *seed) {
         new_logprop = -log(high-low);
  
     low = prop_beta - range;
-    low = (low < 0.000001) ? 0.000001:low;
+    low = (low < 0.50) ? 0.50:low;
     high = prop_beta + range;
     high = (high > 0.999999) ? 0.999999:high;
     if (flag == fdelta2)

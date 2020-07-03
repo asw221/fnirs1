@@ -104,11 +104,13 @@ for i = 1:length(setupFiles)
     
     try 
         % fnirs1.fitDlm(basename(setupFiles{i}));
+        % Create and execute SYSTEM fnrisdlm command
         cmd = sprintf('%s %s', ...
             fullfile(fnirs1.home, 'include', 'fnirsdlm'), ...
             fnirs1.utils.basename(setupFiles{i}));
         status = system(cmd, '-echo');
         success(i) = ~logical(status);
+        %
     catch ME
         warning(ME.identifier, 'fnirs1.dlm: caught error: %s', ME.message);
     end
@@ -132,9 +134,11 @@ if (any(success))
         for i = 1:length(loginfo)
             % read summary info and set nicknames
             setupDir = fileparts(loginfo(i).folder);
-            summaries(i) = summaries(i).read_from_file(...
-                fullfile(loginfo(i).folder, loginfo(i).name));
-            summaries(i).Nickname = fnirs1.utils.basename(setupDir);
+            % summaries(i) = summaries(i).read_from_file(...
+            %    fullfile(loginfo(i).folder, loginfo(i).name));
+            % summaries(i).Nickname = fnirs1.utils.basename(setupDir);
+            summaries(i) = summaries(i).parse_log_directory(...
+                loginfo(i).folder);
             
             % zip successful folders and delete un-zipped versions
             try

@@ -487,8 +487,8 @@ void load_data_structs(POP *pop,int PPP)
             for (int i=0;i<N;i++)
                 rep->Y[i] -= mean;  
             for (int i=0;i<N;i++)
-                rep->Y[i] /= sd/5.;         
-   
+                rep->Y[i] /= sd;         
+     
             sdcnt += 1;      
         }
     }
@@ -566,10 +566,8 @@ void load_data_structs(POP *pop,int PPP)
 
           // CONVOLVE DESIGN MATRIX WITH HRF
             rep->mhrf = 6;
-            HRF = canonical_HRF(35,sub->freq,dim_HRF,6,6,pop->Nb-1);
+            HRF = canonical_HRF(32,sub->freq,dim_HRF,6,6,pop->Nb-1);
             pop->Nb = dim_HRF[1];
-
-/* need to convert dd to design either here or inside convolve, the delete dd */
 
             rep->X = convolve(rep->design,HRF,dim_design,dim_HRF);
              // subsample design

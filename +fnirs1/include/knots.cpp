@@ -55,7 +55,7 @@ void draw_knot_locations(REP *rep,int sdegree,int *flag,unsigned long *seed)
         knots[j] = rnorm(knots[j],rep->prop_sd[3],seed);  // propose knot location
         for (i = sdegree;i<rep->nKnots-sdegree;i++){
             if (!(i==j)) {
-                if (fabs(knots[j]-knots[i]) < 0.0001) {
+                if (fabs(knots[j]-knots[i]) < 0.01) {
                     free(eta);
                     free(eta2);
                     free(knots);
@@ -256,7 +256,7 @@ void birth(REP *rep,POP *pop,double *full_likelihood,unsigned long *seed) {
 
     position = runif_atob(seed,0,rep->dim_V[0]-1);
     for (i = sdegree;i<rep->nKnots-sdegree;i++){
-        if (fabs(position-rep->knots[i]) < 0.0001) {
+        if (fabs(position-rep->knots[i]) < 0.01) {
             position = runif_atob(seed,0,rep->dim_V[0]-1);
             i = sdegree;
           //  return;

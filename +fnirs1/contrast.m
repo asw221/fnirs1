@@ -1,5 +1,20 @@
 
 classdef contrast
+    % Linear model contrast object. Can be constructed from single vectors
+    % or matrices. If constructed from a matrix, the columns of that matrix
+    % will form the set of contrast vectors.
+    %
+    % Example usage:
+    % M = [ [1 0 -1]', [-1 1 0]' ];  % two linear contrasts
+    % C = fnirs1.contrast(M, {'a', 'b', 'c'});
+    % char(C)
+    %
+    % % Displays:
+    % % ans =
+    % %  2×5 char array
+    % %    'a > c'
+    % %    'b > a'
+    % 
     properties
         Names;
         Vectors;

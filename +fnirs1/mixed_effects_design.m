@@ -33,7 +33,7 @@ classdef mixed_effects_design
            
            % Plan: to create an unfitted LinearMixedModel object and use
            %   the result to extract and save design matrix components
-           if (~fnirs1.sml_toolbox_available)
+           if (~fnirs1.utils.sml_toolbox_available)
                error('Formula parsing requires the Statistics and Machine Learning Toolbox');
            end
            if (~istable(tbl))

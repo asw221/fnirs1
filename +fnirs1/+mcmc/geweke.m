@@ -1,5 +1,38 @@
 
 function G = geweke(x, varargin)
+% Compute Geweke statistic to test for convergence of an MCMC chain. Values
+% close to zero indicate approximate convergence.
+%
+% Details:
+% By default, conducts an equal variance t-test for equality of means from
+% the first 10% and last 50% of the MCMC chain. If the test fails to reject
+% (returns statistics < ~2) then we conclude the chain is approximately
+% stationary and convergent.
+%
+% fnirs1.mcmc.geweke(x)
+%   Computes the Geweke statistic with default 10/50 proportions
+%
+% fnirs1.mcmc.geweke(x, 0.2)
+%   Uses the first 20% of the and last 50% of the chain to compute the
+%   Geweke statistic
+%
+% fnirs1.mcmc.geweke(x, 0.2, 0.4)
+%   Uses the first 20% and last 40% of the chain to compute the Geweke
+%   statistic. These proportions can be any number on (0, 1) as long as
+%   they do not add to >= 1
+%
+%
+% Example usage:
+% rng(8675309);
+% x = rand(100, 1);           % A stationary MCMC chain
+% y = [x; rand(100, 1) + 5];  % A non-stationary MCMC chain
+% fnirs1.mcmc.geweke(x)       % Returns 0.2802 (do not reject)
+% fnirs1.mcmc.geweke(y)       % Returns 7.5721 (reject)
+% 
+% 
+% See also:
+% fnirs1.mcmc.ess, fnirs1.mcmc.geweke_plot, fnirs1.mcmc.geweke_sequence
+%
 if ~isnumeric(x)
     error('geweke diagnostic designed for numeric inputs');
 end

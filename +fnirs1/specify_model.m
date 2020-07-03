@@ -206,19 +206,33 @@ elseif (size(options.GroupCovariates, 1) ~= N * M)
 end
 
 % Add Temporal derivatives if requested
-if (options.McmcControl.includeDerivatives)
-    % Inject TempDeriv columns into GroupCovariates and append
+if (options.McmcControl.hrfDerivatives ~= 0)
+    % Inject [Temp/Disp]Deriv columns into GroupCovariates and append
     % GroupCovariateNames
     nx = size(options.GroupCovariates, 1);
-    P = fix(nx / N);  % Should be = M 99% of the time
+    P = fix(nx / N);  % Should be = M 99.9% of the time
+    nDerivs = M * options.McmcControl.hrfDerivatives;  % = M or M * 2
     
-    ndx = [reshape(1:nx, P, N)', repmat((1:M) + nx, N, 1)]';
+    % Append the group design matrix by creating a smaller block diagonal
+    % matrix ([X 0; 0 I]) and indexing the rows to insert/repeat the 'I'
+    % rows
+    ndx = [reshape(1:nx, P, N)', repmat((1:nDerivs) + nx, N, 1)]';
     ndx = reshape(ndx, numel(ndx), 1);
     options.GroupCovariates = blkdiag(...
-        options.GroupCovariates, eye(M));
+        options.GroupCovariates, eye(nDerivs));
     options.GroupCovariates = options.GroupCovariates(ndx, :);
-    options.GroupCovariateNames = [options.GroupCovariateNames, ...
-        cellstr("TempDeriv_" + string(1:M))];
+    
+    % Add to the covariate names
+    if (options.McmcControl.hrfDerivatives == 1)
+        options.GroupCovariateNames = [ ...
+            options.GroupCovariateNames, ...
+            cellstr("TempDeriv_" + string(1:M)) ];
+    elseif (options.McmcControl.hrfDerivatives == 2)
+        options.GroupCovariateNames = [ ...
+            options.GroupCovariateNames, ...
+            cellstr("TempDeriv_" + string(1:M)), ...
+            cellstr("DispDeriv_" + string(1:M)) ];
+    end
 end
 
 % Setup output directory and write data 
@@ -275,7 +289,7 @@ for i = 1:N
     % If we ever need to append S matrix for TempDeriv, that will happen
     % here, for example, like this:
     % % If TempDeriv option requested, append I_M block to task design matrix
-    % if (options.McmcControl.includeDerivatives)
+    % if (options.McmcControl.hrfDerivatives)
     %     data.s = blkdiag(data.s, eye(M));
     %     outcome = [outcome; zeros(M, size(outcome, 2))];  % <- 
     % end
@@ -459,20 +473,20 @@ end
 function success = writeSetupPreamble(fid, N, design, mcmcControl)
 % Write group-constant information to fid
 success = true;
-fprintf(fid, 'GROUP_Analysis = %d\n', N > 1);
+fprintf(fid, 'GROUP_Analysis = %.f\n', N > 1);
 fprintf(fid, 'COVAR_Names = names.txt\n');
 fprintf(fid, 'COVAR_Matrix = covar.dat\n');
 fprintf(fid, 'SEED_Matrix = seed.dat\n\n');
 
-fprintf(fid, 'POP_Stim = %d\n', size(design, 2));
-fprintf(fid, 'Include_temporal_derivative = %d\n\n', ...
-    mcmcControl.includeDerivatives);
+fprintf(fid, 'POP_Stim = %.f\n', size(design, 2));
+fprintf(fid, 'Include_temporal_derivative = %.f\n\n', ...
+    mcmcControl.hrfDerivatives);
 
-fprintf(fid, 'MAX_ITER = %d\n', mcmcControl.maxIterations);
-fprintf(fid, 'BURN_IN = %d\n', mcmcControl.burnin);
-fprintf(fid, 'Expected_Knots = %d\n\n', mcmcControl.expectedKnots);
+fprintf(fid, 'MAX_ITER = %.f\n', mcmcControl.maxIterations);
+fprintf(fid, 'BURN_IN = %.f\n', mcmcControl.burnin);
+fprintf(fid, 'Expected_Knots = %.f\n\n', mcmcControl.expectedKnots);
 
-fprintf(fid, 'NSUBS = %d\n', N);
+fprintf(fid, 'NSUBS = %.f\n', N);
 end
 
 
