@@ -223,8 +223,8 @@ classdef dlm_summary
             % Recover stored data from fitted models. Returns a (nested)
             % struct
             options = {'beta'; 'delta'; 'DLM'; 'eta'; 'fit'; 'HRF'; ...
-                'knots'; 'nknots'; 'rawres'; 'stdev'; 'veta'; 'wdelta'; ...
-                'Xbeta'; 'X'; 'Y'};
+                'knots'; 'nknots'; 'rawres'; 'stdev'; 'stdres'; 'veta'; ...
+                'wdelta'; 'Xbeta'; 'X'; 'Y'};
             
             if ~any(strcmp(what, options))
                 optstr = strcat(options, {', '});
@@ -497,6 +497,45 @@ classdef dlm_summary
                 title(strrep(fitted.data(i).what, '_', ' '));
             end
         end
+        function H = qqplot(obj)
+            % Faceted plot of participants' standardized residual against
+            % standard Normal quantiles
+            if isempty(obj)
+                error('Object contains no data to plot');
+            else
+                if (numel(obj) > 1)
+                    warning('dlm_summary:PlotMultiChannel', ...
+                        '%s %s (''%s'')', ...
+                        'Object contains data from multiple channels.', ...
+                        'Plotting only the first', obj(1).Nickname);
+                end
+            end
+            Y = obj(1).get_data('stdres');
+            M = max(1, floor(sqrt(numel(Y.data))));
+            N = ceil(numel(Y.data) / M);
+            H = figure;
+            % Find range of Y
+            yrng = [min(Y.data(1).data), max(Y.data(1).data)];
+            if (numel(Y.data) > 1)
+                for i = 1:numel(Y.data)
+                    yrng = [ min([yrng, Y.data(i).data]), ...
+                        max([yrng, Y.data(i).data]) ];
+                end
+            end
+            for i = 1:numel(Y.data)
+                lenY = numel(Y.data(i).data);
+                p = (1:lenY) / (lenY + 1);
+                z = norminv(p);
+                subplot(M, N, i);
+                plot(z, sort(Y.data(i).data), 'k.');
+                hold on
+                plot([z(1), z(end)], [z(1), z(end)], '-r');
+                xlim(1.02 * [z(1), z(end)]);
+                ylim(1.02 * yrng);
+                xlabel('Normal Quantiles');
+                ylabel('Residual Quantiles');
+            end
+        end
         function obj = read_from_file(obj, file)
             % Read data from a Parameter_Estimates.log file and extract
             % parameter estimates and inferential summaries
@@ -714,6 +753,41 @@ classdef dlm_summary
                     obj.Samples = [];
                     warning('Could not locate participant''s MCMC ouptut file');
                 end
+            end
+        end
+        function H = residplot(obj)
+            % Faceted plot of participants' residual time series
+            if isempty(obj)
+                error('Object contains no data to plot');
+            else
+                if (numel(obj) > 1)
+                    warning('dlm_summary:PlotMultiChannel', ...
+                        '%s %s (''%s'')', ...
+                        'Object contains data from multiple channels.', ...
+                        'Plotting only the first', obj(1).Nickname);
+                end
+            end
+            Y = obj(1).get_data('rawres');
+            M = max(1, floor(sqrt(numel(Y.data))));
+            N = ceil(numel(Y.data) / M);
+            H = figure;
+            % Find range of Y
+            yrng = [min(Y.data(1).data), max(Y.data(1).data)];
+            if (numel(Y.data) > 1)
+                for i = 1:numel(Y.data)
+                    yrng = [ min([yrng, Y.data(i).data]), ...
+                        max([yrng, Y.data(i).data]) ];
+                end
+            end
+            for i = 1:numel(Y.data)
+                subplot(M, N, i);
+                plot(1:numel(Y.data(i).data), Y.data(i).data, 'k.');
+                hold on
+                plot([1, numel(Y.data(i).data)], [0, 0], '-r');
+                xlim([1, numel(Y.data(i).data)]);
+                ylim(yrng);
+                xlabel('Timepoint');
+                ylabel([upper(obj(1).Outcome) ' Residual']);
             end
         end
         function obj = set.Nickname(obj, nname)
