@@ -1,5 +1,7 @@
 
 function G = geweke_sequence(x, varargin)
+% Compute Geweke statistic sequences for increasing burnin lengths based on
+% the available samples
 if ~isnumeric(x)
     error('geweke diagnostic designed for numeric inputs');
 end

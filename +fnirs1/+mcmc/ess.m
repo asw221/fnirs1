@@ -34,4 +34,5 @@ elseif strcmpi(method, 'spectral')
     N = P * var(x) ./ psd0;
 end
 N(isnan(N)) = 0;
+N = max(N, 1);
 end

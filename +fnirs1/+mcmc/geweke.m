@@ -23,11 +23,11 @@ function G = geweke(x, varargin)
 %
 %
 % Example usage:
-% rng(8675309);
-% x = rand(100, 1);           % A stationary MCMC chain
-% y = [x; rand(100, 1) + 5];  % A non-stationary MCMC chain
-% fnirs1.mcmc.geweke(x)       % Returns 0.2802 (do not reject)
-% fnirs1.mcmc.geweke(y)       % Returns 7.5721 (reject)
+%   rng(8675309);
+%   x = rand(100, 1);           % A stationary MCMC chain
+%   y = [x; rand(100, 1) + 5];  % A non-stationary MCMC chain
+%   fnirs1.mcmc.geweke(x)       % Returns 0.2802 (do not reject)
+%   fnirs1.mcmc.geweke(y)       % Returns 7.5721 (reject)
 % 
 % 
 % See also:

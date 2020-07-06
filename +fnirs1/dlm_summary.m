@@ -295,6 +295,29 @@ classdef dlm_summary
                 G = table(Identifier, Parameter, ESS, t);
             end
         end
+        function H = gewekeplot(obj)
+            % Faceted Geweke sequence plots for primary model parameters.
+            % Can be used to decide if burnin length is appropriate
+            if isempty(obj)
+                error('Object contains no data to plot');
+            else
+                if (numel(obj) > 1)
+                    warning('dlm_summary:PlotMultiChannel', ...
+                        '%s %s (''%s'')', ...
+                        'Object contains data from multiple channels.', ...
+                        'Plotting only the first', obj(1).Nickname);
+                end
+            end
+            M = max(floor(sqrt(size(obj(1).Samples, 2))), 1);
+            N = ceil(size(obj(1).Samples, 2) / M);
+            H = fnirs1.mcmc.gewekeplot(obj(1).Samples);
+            nms = obj(1).parameter_names;
+            nms = strrep(nms(1:size(obj(1).Samples, 2)), '_', ' ');
+            for i = 1:size(obj(1).Samples, 2)
+                subplot(M, N, i);
+                title(nms{i});
+            end
+        end
         function obj = head(obj, varargin)
             % Extract only the first N items from an fnris1.dlm_summary
             % object. By default, N = 6

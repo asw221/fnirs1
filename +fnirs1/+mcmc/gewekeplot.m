@@ -1,5 +1,5 @@
 
-function H = geweke_plot(x)
+function H = gewekeplot(x)
 if ~isnumeric(x)
     error('geweke diagnostic designed for numeric inputs');
 end
@@ -20,8 +20,8 @@ for j = 1:P
     plot(G(:, 1), G(:, j + 1), 'b.', 'MarkerSize', 20);
     hold on;
     box off;
-    xlim(xrange);
-    ylim(yrange);
+    xlim(1.02 * xrange);
+    ylim(1.02 * yrange);
     set(gca, ...
         'FontSize', 12, ...
         'TickDir', 'out', ...
