@@ -5,8 +5,17 @@
 %   >> cd +fnirs1/installer
 %   >> run install.m
 
-FFTW_HOME = '/usr/local/include';
-FFTW_LIB  = '/usr/local/lib';
+% First try to find FFTW_HOME/LIB among the environment variables. If that
+% fails, try common default install locations
+FFTW_HOME = fullfile(getenv('FFTW_HOME'), 'include');
+FFTW_LIB  = getenv('FFTW_LIB');
+
+if isempty(FFTW_HOME)
+    FFTW_HOME = '/usr/local/include';  % Common default
+end
+if isempty(FFTW_LIB)
+    FFTW_LIB  = '/usr/local/lib';
+end
 % User may need to edit 
 % FFTW_HOME:
 %   - From a terminal, the command ls [value-of-FFTW_HOME]
