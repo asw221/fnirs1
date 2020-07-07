@@ -89,7 +89,7 @@ fprintf(makefileid, 'LIB      := %s\n', LIB);
 fprintf(makefileid, 'LINK     := %s\n', LINK);
 fprintf(makefileid, 'OMPLINK  := %s\n\n', OMPLINK);
 fprintf(makefileid, 'all: $(OBJ)\n\t$(CXX) $(CXXFLAGS) $(OBJ) $(LIB) $(LINK) $(OMPLINK) -o fnirsdlm\n\n');
-fprintf(makefileid, '$(OBJ): $(SRC)\n\t$(CXX) -c $(CXXFLAGS) $(SRC) $(OMPLINK)\n\n');
+fprintf(makefileid, '$(OBJ): $(SRC)\n\t$(CXX) -c $(CXXFLAGS) $(SRC) $(INC) $(OMPLINK)\n\n');
 fprintf(makefileid, '{OBJ}: cholesky.h randgen.h\n\n');
 fprintf(makefileid, 'clean:\n\trm -f fnirsdlm *.o\n');
 fclose(makefileid);
