@@ -7,10 +7,11 @@
  *
  */
 
+#include <fftw3.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
-#include "/usr/local/include/fftw3.h"
+
 #include "fNIRS.h"
 #include "randgen.h"
 
