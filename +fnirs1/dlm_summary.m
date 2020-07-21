@@ -221,7 +221,17 @@ classdef dlm_summary
         end
         function D = get_data(obj, what)
             % Recover stored data from fitted models. Returns a (nested)
-            % struct
+            % struct. Parameter 'what' should be a character string with
+            % the name of what data to try to recover. Valid options
+            % include:
+            %   { 'beta',   'delta',  'DLM',    'eta',   'fit',    'HRF',
+            %     'knots',  'nknots', 'rawres', 'stdev', 'stdres', 'veta',
+            %     'wdelta', 'Xbeta',  'X',      'Y' }
+            %
+            % This method operates on vectors of fnirs1.dlm_summary
+            % objects, but results *may* require a relatively large amount
+            % of memory to store
+            %
             options = {'beta'; 'delta'; 'DLM'; 'eta'; 'fit'; 'HRF'; ...
                 'knots'; 'nknots'; 'rawres'; 'stdev'; 'stdres'; 'veta'; ...
                 'wdelta'; 'Xbeta'; 'X'; 'Y'};
@@ -335,6 +345,11 @@ classdef dlm_summary
                 obj(i).Intervals = obj(i).Intervals(1:N, :);
                 obj(i).StdErrors = obj(i).StdErrors(1:N);
             end
+        end
+        function F = hrf(obj)
+            % Return the HRF function (with derivatives) from the fitted
+            % model
+            F = obj(1).get_data('HRF');
         end
         function B = isempty(obj)
             % Returns logical true of object does not contain any data

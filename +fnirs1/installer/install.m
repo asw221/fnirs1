@@ -10,7 +10,7 @@
 FFTW_HOME = fullfile(getenv('FFTW_HOME'), 'include');
 FFTW_LIB  = getenv('FFTW_LIB');
 
-if isempty(FFTW_HOME)
+if (strcmp(FFTW_HOME, 'include') || isempty(FFTW_HOME))
     FFTW_HOME = '/usr/local/include';  % Common default
 end
 if isempty(FFTW_LIB)

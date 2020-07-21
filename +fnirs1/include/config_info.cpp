@@ -15,11 +15,8 @@ void load_config_info(POP *pop,const char *config_file,unsigned long *seed)
 {
     int N;
     int isub=0;
-    int irep=0;
     int ifreq=0;
     int isfreq=0;
-    int istim=0;
-    int is=0;
     int idata=0;
     int ides=0;
     double yin;
@@ -77,8 +74,10 @@ void load_config_info(POP *pop,const char *config_file,unsigned long *seed)
                     start = 1;
             }
     	    fseed = fopen(seedMat,"r+");
-	        for (int i=0;i<3;i++)
+	        for (int i=0;i<3;i++) {
 		        int ifs = fscanf(fseed,"%lu ",&(seed[i]));
+		        if (ifs = 0);
+		    }
 	        free(seedMat);
         }
         else if (!strcmp(C,"COVAR_Matrix")) {
@@ -283,8 +282,10 @@ void load_config_info(POP *pop,const char *config_file,unsigned long *seed)
             sub->dim_X[1] = Ncol;
             sub->X = (double *)calloc(Nrow*Ncol,sizeof(double));
             for (int i=0;i<Nrow;i++)
-                for (int j=0;j<Ncol;j++)
+                for (int j=0;j<Ncol;j++) {
                     int ifs = fscanf(fcovar,"%lf ",&(sub->X[j + i*Ncol]));
+                    if (ifs);
+                }
             for (int i=0;i<Nrow;i++) {
                 for (int j=0;j<Ncol;j++)
                     fprintf(flog,"%lf ",sub->X[j + i*Ncol]);
@@ -455,8 +456,10 @@ void load_data_structs(POP *pop,int PPP)
             double *YY;
             YY = (double *)calloc(N,sizeof(double));
             
-            for (int i=0;i<N;i++)
+            for (int i=0;i<N;i++) {
                 int ifs = fscanf(fout,"%lf",&(YY[i]));
+                if (ifs);
+            }
 //                int ifs = fscanf(fout,"%lf %lf",&(YY[i]),&xy);
             fclose(fout);
 // ***********
@@ -486,9 +489,10 @@ void load_data_structs(POP *pop,int PPP)
             maxSD = (maxSD > sd) ? maxSD:sd;
             for (int i=0;i<N;i++)
                 rep->Y[i] -= mean;  
-            for (int i=0;i<N;i++)
-                rep->Y[i] /= sd;         
-     
+//            for (int i=0;i<N;i++)
+//                rep->Y[i] /= sd;        
+//            for (int i=0;i<N;i++)
+//                rep->Y[i] *= 10e6;
             sdcnt += 1;      
         }
     }
@@ -506,7 +510,6 @@ void load_data_structs(POP *pop,int PPP)
             fprintf(flog,"%s\n",rep->dataname);fflush(flog);
             fout = fopen(rep->dataname,"r");
 //change this back
-            double xy;
             N = 0;
             while (fscanf(fout,"%lf\n",&(yin)) != EOF)
 //           while (fscanf(fout,"%lf %lf\n",&(yin),&xy) != EOF)
@@ -522,7 +525,6 @@ void load_data_structs(POP *pop,int PPP)
             
             fclose(fout);
 
-            // subsample data
             double sfreq = sub->subsampled_freq;
             int subN;
             subN = rep->N;
@@ -536,11 +538,11 @@ void load_data_structs(POP *pop,int PPP)
             }
 
             // standardize data   
- //           printf("SD = %g, rep->N = %d, N = %d\n",SD,rep->N,N);exit(0);        
- //            for (int i=0;i<rep->N;i++)  
-//                   rep->Y[i] /= maxSD/5.;     
-//                   rep->Y[i] /= SD/5.;     
-  
+//             printf("SD = %g, rep->N = %d, N = %d\n",SD,rep->N,N);        
+             for (int i=0;i<rep->N;i++)  
+                    rep->Y[i] /= SD;    
+                  // rep->Y[i] /= maxSD/5.;     
+ 
 
             fout = fopen(rep->designname,"r");
             fprintf(flog,"%s\n",rep->designname);fflush(flog);
@@ -558,11 +560,11 @@ void load_data_structs(POP *pop,int PPP)
             for (int i=0;i<dim_design[0];i++)
                 rep->design[i] = (double *)calloc(dim_design[1],sizeof(double));
             for (int i=0;i<dim_design[0];i++)
-                for (int j=0;j<dim_design[1];j++)
+                for (int j=0;j<dim_design[1];j++) {
                     int ifs = fscanf(fout,"%lf ",&(rep->design[i][j]));
-        
+                    if (ifs);
+                }
             fclose(fout);
-
 
           // CONVOLVE DESIGN MATRIX WITH HRF
             rep->mhrf = 6;
@@ -584,6 +586,7 @@ void load_data_structs(POP *pop,int PPP)
             }
             else 
                 subN = dim_design[0];
+
             
             dim_design[0] = subN;
             rep->dim_X = (int *)calloc(2,sizeof(int));
@@ -602,14 +605,14 @@ void load_data_structs(POP *pop,int PPP)
  //                  tmp = sqrt(tmp);
                 max = (tmp > max) ? tmp:max;
             }
-            for (int j=0;j<rep->dim_X[1];j++) { // normalize
-                for (int i=0;i<rep->dim_X[0];i++)
+           for (int j=0;j<rep->dim_X[1];j++) { // normalize
+                for (int i=0;i<rep->dim_X[0];i++) 
                     rep->X[i*rep->dim_X[1]+j] /= max;
             }
  /*               for (int j=0;j<rep->dim_X[1];j++)
             for (int i=0;i<rep->dim_X[0];i++)
                 rep->Y[i] += rep->X[i*rep->dim_X[1]+j];*/
-            fprintf(flog,"max = %lf\n",max);fflush(stdout);      
+            fprintf(flog,"max = %lf\n",max);fflush(NULL);      
           
 /*            N = N-1;
             rep->dim_X[0] = N;
@@ -620,12 +623,15 @@ void load_data_structs(POP *pop,int PPP)
                     rep->X[i*rep->dim_X[1]+j] = rep->X[(i+1)*rep->dim_X[1]+j] - rep->X[i*rep->dim_X[1]+j];
             }*/
             // reorder
-            if (dim_HRF[1] == 2) {
+            if (dim_HRF[1] > 1) {
                 int *perm = (int *)calloc(rep->dim_X[1],sizeof(int));
                 double *xperm = (double *)calloc(rep->dim_X[1],sizeof(double));
-                for (int i=0;i<dim_design[1];i++) {
-                    perm[i] = 2*i;
-                    perm[i+dim_design[1]] = 2*i+1;
+                for (int k=0;k<dim_design[1];k++){
+                    int j = k*dim_HRF[1];
+                    for (int i=k;i<rep->dim_X[1];i+=dim_design[1]) {
+                        perm[i] = j;
+                        j++;
+                    }
                 }
                 for (int i=0;i<rep->dim_X[0];i++) {
                     for (int j=0;j<rep->dim_X[1];j++)
@@ -639,7 +645,6 @@ void load_data_structs(POP *pop,int PPP)
             // CREATE Initial B-Spline BASIS TO REMOVE LOW FREQUENCY DRIFT
             
             double T = (double)(N-1)/(double)sfreq;
-            int K=0;
             
             pop->sub[isub].rep[irep].dim_V = (int *)calloc(2,sizeof(int));
             
@@ -650,7 +655,7 @@ void load_data_structs(POP *pop,int PPP)
             pop->sub[isub].rep[irep].nKnots += 6;                  
  
 
-            fprintf(flog,"NKNOTS = %d, dim_V[1] = %d\n",pop->sub[isub].rep[irep].nKnots,pop->sub[isub].rep[irep].dim_V[1]);
+            fprintf(flog,"NKNOTS = %d, dim_V[1] = %d\n",pop->sub[isub].rep[irep].nKnots,pop->sub[isub].rep[irep].dim_V[1]);fflush(NULL);
             for (int i=0;i<pop->sub[isub].rep[irep].nKnots;i++)
                 fprintf(flog,"%lf ",pop->sub[isub].rep[irep].knots[i]);
             fprintf(flog,"\n");
@@ -933,7 +938,6 @@ void remove_beginning_and_end(double freq,double *Y,double *X,int *nrow,int ncol
     if (t_start <= 2.)
         *N_start = 0;
     
-    int nr = *nrow;
     *nrow = *N_end - *N_start;
 
 //    printf("N_start = %d time = %lf \t N_end = %d\t nrow = %d time = %lf nrow = %d\n",*N_start,(double)*N_start/freq,*N_end,nr,(double)(nr-*N_end)/freq,*nrow);fflush(stdout);

@@ -107,6 +107,8 @@ options = struct(...
     'GroupData', table(), ...
     'GroupFormula', '', ...
     'McmcControl', fnirs1.mcmc_control, ...
+    'NFixed', 0, ...
+    'NRandom', 0, ...
     'OutcomeType', 'hbo', ...
     'SpecificChannels', [] ...
     );
@@ -235,6 +237,12 @@ if (options.McmcControl.hrfDerivatives ~= 0)
     end
 end
 
+
+% Reorder group design matrix
+if (groupAnalysis)
+    options = reorderGroupDesign(options);
+end
+
 % Setup output directory and write data 
 % Trying to create file names that may help avoid output directory
 % collisions if running multiple Matlab sessions. I'm not sure there's a 
@@ -318,7 +326,7 @@ for i = 1:N
                 remove_folder_and_contents(outdir);
                 error('Cound not write %s', setupFiles{ch});
             end
-            writeSetupPreamble(setupFid, N, data.s, options.McmcControl);
+            writeSetupPreamble(setupFid, N, data.s, options);
             fclose(setupFid);
             
             % Write seed.dat, names.txt & covar.dat
@@ -470,7 +478,7 @@ end
 
 
 
-function success = writeSetupPreamble(fid, N, design, mcmcControl)
+function success = writeSetupPreamble(fid, N, design, opts)
 % Write group-constant information to fid
 success = true;
 fprintf(fid, 'GROUP_Analysis = %.f\n', N > 1);
@@ -480,13 +488,47 @@ fprintf(fid, 'SEED_Matrix = seed.dat\n\n');
 
 fprintf(fid, 'POP_Stim = %.f\n', size(design, 2));
 fprintf(fid, 'Include_temporal_derivative = %.f\n\n', ...
-    mcmcControl.hrfDerivatives);
+    opts.McmcControl.hrfDerivatives);
 
-fprintf(fid, 'MAX_ITER = %.f\n', mcmcControl.maxIterations);
-fprintf(fid, 'BURN_IN = %.f\n', mcmcControl.burnin);
-fprintf(fid, 'Expected_Knots = %.f\n\n', mcmcControl.expectedKnots);
+fprintf(fid, 'MAX_ITER = %.f\n', opts.McmcControl.maxIterations);
+fprintf(fid, 'BURN_IN = %.f\n', opts.McmcControl.burnin);
+fprintf(fid, 'Expected_Knots = %.f\n\n', opts.McmcControl.expectedKnots);
 
 fprintf(fid, 'NSUBS = %.f\n', N);
+fprintf(fid, 'Random = %.f\n', opts.NRandom);
+fprintf(fid, 'Fixed = %.f\n', opts.NFixed);
+end
+
+
+
+function opts = reorderGroupDesign(opts)
+% Reorder options.GroupCovariates and options.GroupCovariateNames to put
+% the random effects {Cond_*, TempDeriv_*, DispDeriv_*, Interactions}
+% first. Also sets options.NRandom and options.NFixed
+
+lcond  = fnirs1.utils.regexpl(opts.GroupCovariateNames, 'Cond_');
+ltempd = fnirs1.utils.regexpl(opts.GroupCovariateNames, 'TempDeriv_');
+ldispd = fnirs1.utils.regexpl(opts.GroupCovariateNames, 'DispDeriv_');
+linter = fnirs1.utils.regexpl(opts.GroupCovariateNames, ':');
+
+% Put ordered Cond_* first:
+ndx = find(lcond & ~linter);
+% Then TempDeriv_*:
+ndx = [ndx, find(ltempd & ~linter)];
+% Then DispDeriv_*:
+ndx = [ndx, find(ldispd & ~linter)];
+% Then interactions with any of ^^:
+ndx = [ndx, find(lcond & linter), find(ltempd & linter), ...
+    find(ldispd & linter)];
+
+reNdx = ndx;
+fixNdx = find(~(lcond | ltempd | ldispd));
+ndx = [reNdx, fixNdx];
+
+opts.GroupCovariateNames = opts.GroupCovariateNames(ndx);
+opts.GroupCovariates = opts.GroupCovariates(:, ndx);
+opts.NRandom = numel(reNdx);
+opts.NFixed = numel(fixNdx);
 end
 
 

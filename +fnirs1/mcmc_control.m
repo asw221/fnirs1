@@ -31,7 +31,7 @@ methods
         % defaults
         obj.maxIterations = 3e3;
         obj.expectedKnots = 15;
-        obj.hrfDerivatives = 1;
+        obj.hrfDerivatives = 2;
         if (nargin >= 1)
             if (isnumeric(varargin{1}) && isscalar(varargin{1}) && varargin{1} > 0)
                 obj.maxIterations = fix(varargin{1});
