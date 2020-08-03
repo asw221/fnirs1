@@ -76,7 +76,7 @@ void load_config_info(POP *pop,const char *config_file,unsigned long *seed)
     	    fseed = fopen(seedMat,"r+");
 	        for (int i=0;i<3;i++) {
 		        int ifs = fscanf(fseed,"%lu ",&(seed[i]));
-		        if (ifs = 0);
+		        if (ifs == 0) {ifs = 0;}
 		    }
 	        free(seedMat);
         }
@@ -271,6 +271,8 @@ void load_config_info(POP *pop,const char *config_file,unsigned long *seed)
                 i++;
             }
         }
+        fclose(fcovarNames);
+        free(cname);
         pop->Ncov = i;
         
         int Nrow = pop->Nb*pop->Ns;
@@ -284,7 +286,7 @@ void load_config_info(POP *pop,const char *config_file,unsigned long *seed)
             for (int i=0;i<Nrow;i++)
                 for (int j=0;j<Ncol;j++) {
                     int ifs = fscanf(fcovar,"%lf ",&(sub->X[j + i*Ncol]));
-                    if (ifs);
+                    if (ifs) {ifs = 0;}
                 }
             for (int i=0;i<Nrow;i++) {
                 for (int j=0;j<Ncol;j++)
@@ -293,7 +295,7 @@ void load_config_info(POP *pop,const char *config_file,unsigned long *seed)
             }
             fprintf(flog,"\n");
         }
-
+        fclose(fcovar);
 
 /*        int Nc = 2;
         int Np = 0;
@@ -396,6 +398,8 @@ void load_config_info(POP *pop,const char *config_file,unsigned long *seed)
     fprintf(flog,"Nb = %d\n",pop->Nb);
     if (covarMat != NULL)
         free(covarMat);
+    if (covarNames != NULL)
+        free(covarNames);
 }
 
 void load_data_structs(POP *pop,int PPP) 
@@ -433,6 +437,7 @@ void load_data_structs(POP *pop,int PPP)
     double sd,SD,sdcnt = 0;
     SD = 0;
     double maxSD = -1; 
+ 
     for (int isub=0;isub<pop->N_SUBS;isub++) {
         sub = &(pop->sub[isub]);
 //        sub->N_REPS = 1;
@@ -458,7 +463,7 @@ void load_data_structs(POP *pop,int PPP)
             
             for (int i=0;i<N;i++) {
                 int ifs = fscanf(fout,"%lf",&(YY[i]));
-                if (ifs);
+                if (ifs) {ifs = 0;}
             }
 //                int ifs = fscanf(fout,"%lf %lf",&(YY[i]),&xy);
             fclose(fout);
@@ -496,7 +501,7 @@ void load_data_structs(POP *pop,int PPP)
             sdcnt += 1;      
         }
     }
-    SD = sqrt(SD)/sdcnt;
+    SD = sqrt(SD)/sdcnt; // sqrt of arithmetic mean of sd
     
     for (int isub=0;isub<pop->N_SUBS;isub++) {
         sub = &(pop->sub[isub]);
@@ -542,8 +547,6 @@ void load_data_structs(POP *pop,int PPP)
              for (int i=0;i<rep->N;i++)  
                     rep->Y[i] /= SD;    
                   // rep->Y[i] /= maxSD/5.;     
- 
-
             fout = fopen(rep->designname,"r");
             fprintf(flog,"%s\n",rep->designname);fflush(flog);
             int cnt=0;
@@ -562,7 +565,7 @@ void load_data_structs(POP *pop,int PPP)
             for (int i=0;i<dim_design[0];i++)
                 for (int j=0;j<dim_design[1];j++) {
                     int ifs = fscanf(fout,"%lf ",&(rep->design[i][j]));
-                    if (ifs);
+                    if (ifs) {ifs = 0;}
                 }
             fclose(fout);
 
@@ -716,9 +719,11 @@ void load_data_structs(POP *pop,int PPP)
  //           pop->sub[isub].rep[irep].md_Y = (double *)calloc(pop->sub[isub].rep[irep].dim_X[0],sizeof(double));
             pop->sub[isub].rep[irep].sd_Y = (double *)calloc(pop->sub[isub].rep[irep].dim_X[0],sizeof(double));
             
-            pop->sub[isub].rep[irep].K = 1;
-            pop->sub[isub].rep[irep].preceta = 1.5;
-            pop->sub[isub].rep[irep].precdelta = 100.;
+            double mean;
+            compute_mean_sd(&mean,&sd,rep->Y,(const int)N);
+            double vary = sd*sd;
+            
+            pop->sub[isub].rep[irep].preceta = 1.0/vary;
             pop->sub[isub].rep[irep].LY = 1./100.;
             pop->sub[isub].rep[irep].precYstart = 1;
             rep->d_Y = (double *)calloc(rep->dim_X[0],sizeof(double));
@@ -870,22 +875,8 @@ void load_data_structs(POP *pop,int PPP)
     free(S);
     free(dim_design);
     free(dim_HRF);
-    
     /*** create DLM structures ***/
-/*    maxDLM = 0;
-    for (int i=0;i<pop->N_SUBS;i++) {
-        for (int j=0;j<pop->sub[i].N_REPS;j++) {
-            REP *tmprep = &(pop->sub[i].rep[j]);
-            maxDLM = (maxDLM > tmprep->dim_X[0]) ? maxDLM:tmprep->dim_X[0];
-        }
-     }
-     dlmStruc = (sDLM *)calloc(maxDLM,sizeof(sDLM));
-     int dimsize = maxP + 1;
-    for (int k=0;k<maxDLM;k++)
-        dlmStruc[k].m = (double *)calloc(dimsize,sizeof(double));
-    for (int k=0;k<maxDLM;k++)
-        dlmStruc[k].C = (double *)calloc(dimsize*dimsize,sizeof(double));
-*/
+
     int dimsize = maxP+1;
     for (int i=0;i<pop->N_SUBS;i++) {
         for (int j=0;j<pop->sub[i].N_REPS;j++) {
@@ -1077,4 +1068,9 @@ void delete_POP_Struc(POP *pop) {
     free(pop->beta);
     free(pop->re_rep_prec);
     free(pop->re_prec);
+    if (pop->GRP) {
+        for (int i=0;i<pop->Ncov;i++)
+            free(pop->covnames[i]);
+        free(pop->covnames);
+    }
 }

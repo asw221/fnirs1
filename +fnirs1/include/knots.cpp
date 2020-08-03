@@ -15,12 +15,12 @@
 #include <time.h>
 #include "fNIRS.h"
 
-void draw_knot_locations(REP *rep,int sdegree,int *flag,unsigned long *seed)
+void draw_knot_locations(REP *rep,int sdegree,unsigned long *seed)
 {
-    int i,j,k,l;
+    int i,j,k;
     double old_like,new_like;
     double like_ratio,prior_ratio,*data,*knots;
-    double *knots2,tmp,max,*eta,*eta2;
+    double *knots2,tmp,*eta,*eta2;
     void bsplinebasis(int j,int k,int SplineOrder,double x,double *knots,int Nknots,double *b);
     void calculate_residuals(REP *rep,int P);
     void calAx(double *Ax,double *A,double *x,const int nrow,const int ncol);   
@@ -35,7 +35,6 @@ void draw_knot_locations(REP *rep,int sdegree,int *flag,unsigned long *seed)
     old_like = 0;
     for (i=0;i<rep->dim_X[0];i++)
         old_like += rep->d_Y[i]*rep->residuals[i]*rep->residuals[i];
-                     FILE *fout;
    
     data = (double *)calloc(rep->dim_V[0],sizeof(double));
     for (i=0;i<rep->dim_V[0];i++)
@@ -119,7 +118,6 @@ void draw_knot_locations(REP *rep,int sdegree,int *flag,unsigned long *seed)
                     rep->eta[i] = eta2[i];
                 for (i=0;i<rep->nKnots;i++)
                     rep->knots[i] = knots2[i];
-                 *flag = 1;
             }
             else {
                 for (i=0;i<rep->dim_V[0]*rep->dim_V[1];i++)
@@ -145,7 +143,7 @@ void draw_knot_locations(REP *rep,int sdegree,int *flag,unsigned long *seed)
     free(data);
 }
 
-int calculate_death_rates(double *death_rate,double *Death_rate,double Birth_rate,double prior_rate,REP *rep,POP *pop,int sdegree,double full_likelihood) {
+int calculate_death_rates(double *death_rate,double *Death_rate,double Birth_rate,double prior_rate,REP *rep,int sdegree,double full_likelihood) {
     int i,j,k;
     double *partial_likelihood;
     double max;
@@ -243,9 +241,9 @@ int calculate_death_rates(double *death_rate,double *Death_rate,double Birth_rat
     return dflag;
 }
 
-void birth(REP *rep,POP *pop,double *full_likelihood,unsigned long *seed) {
-    int i,j,pos_idx,sdegree=4;
-    double position,full_ldens,new_eta;
+void birth(REP *rep,double *full_likelihood,unsigned long *seed) {
+    int i,pos_idx,sdegree=4;
+    double position,new_eta;
     double *teta,*tknots,*VV;
     
     int add_knot(REP *rep,double *V,double *knots,double *eta,int sdegree,double new_eta,double position);
@@ -326,8 +324,8 @@ void birth(REP *rep,POP *pop,double *full_likelihood,unsigned long *seed) {
     
 }
 
-void death(double *death_rate,REP *rep,POP *pop,double *full_likelihood,int sdegree,unsigned long *seed) {
-    int i,j,remove;
+void death(double *death_rate,REP *rep,double *full_likelihood,int sdegree,unsigned long *seed) {
+    int i,remove;
     double *eta,*tknots;
     
     void remove_knot(REP *rep,double *V,double *eta,double *knots,const int sdegree,int remove);
@@ -362,7 +360,7 @@ void death(double *death_rate,REP *rep,POP *pop,double *full_likelihood,int sdeg
     (rep->dim_V[1])--;
     
     free(rep->eta);
-    rep->eta = (double *)calloc(rep->dim_V[1],sizeof(double));
+//    rep->eta = (double *)calloc(rep->dim_V[1],sizeof(double));
     rep->eta = eta;
 /*    rep->eta = (double *)realloc(rep->eta,rep->dim_V[1]*sizeof(double));
     for (i=0;i<rep->dim_V[1];i++)
@@ -370,7 +368,7 @@ void death(double *death_rate,REP *rep,POP *pop,double *full_likelihood,int sdeg
     free(eta);*/
     
     free(rep->knots);
-    rep->knots = (double *)calloc(rep->nKnots,sizeof(double));
+//    rep->knots = (double *)calloc(rep->nKnots,sizeof(double));
     rep->knots = tknots;
 /*    rep->knots = (double *)realloc(rep->knots,rep->nKnots*sizeof(double));
     for (i=0;i<rep->nKnots;i++)
@@ -395,11 +393,11 @@ void death(double *death_rate,REP *rep,POP *pop,double *full_likelihood,int sdeg
     *full_likelihood *= -0.5;
 }
 
-int knot_birth_death(REP *rep,POP *pop,const int sdegree,int iter,unsigned long *seed){
+int knot_birth_death(REP *rep,int pknots,const int sdegree,unsigned long *seed){
     
-    int i,j,k,aaa,dflag,max_knots = 76;
+    int i,aaa,dflag,max_knots = 76;
     double Birth_rate,prior_rate,T,full_likelihood,max,S;
-    double Death_rate,*death_rate,position,*partial_likelihood;
+    double Death_rate,*death_rate;
 
     void calculate_residuals(REP *rep,int P);
    
@@ -408,15 +406,15 @@ int knot_birth_death(REP *rep,POP *pop,const int sdegree,int iter,unsigned long 
     // set simulation time
 
 //    prior_rate = rep->nKnots;
-    prior_rate = rgamma(pop->knots,1,seed);
-    Birth_rate = 10.;
+    prior_rate = rgamma(0.5*pknots,0.5,seed);
+    Birth_rate = pknots;
  /*   if (iter > 1000)
         T= 1./Birth_rate;
     else*/
-    if (iter == 0)
-        T = 2.5;
-    else
-        T = 1.;//1./10.;
+//    if (iter <= 24)
+//        T = 2.5;
+//    else
+        T = 0.25;//1./Birth_rate;
         
     calculate_residuals(rep,rep->P);
     
@@ -432,7 +430,7 @@ int knot_birth_death(REP *rep,POP *pop,const int sdegree,int iter,unsigned long 
   
         death_rate = (double *)calloc(rep->nKnots-2*sdegree,sizeof(double));
 
-        dflag = calculate_death_rates(death_rate,&Death_rate,Birth_rate,prior_rate,rep,pop,sdegree,full_likelihood);
+        dflag = calculate_death_rates(death_rate,&Death_rate,Birth_rate,prior_rate,rep,sdegree,full_likelihood);
         
          /* SIMULATE TIME, S, TO NEXT JUMP */
         if (!dflag) Death_rate = 0;
@@ -452,7 +450,7 @@ int knot_birth_death(REP *rep,POP *pop,const int sdegree,int iter,unsigned long 
  //                         printf("kiss %lu %lu %lu\n",seed[0],seed[1],seed[2]);
       if (kiss(seed) < max) {  /* a birth occurs */
 
-           birth(rep,pop,&full_likelihood,seed);
+           birth(rep,&full_likelihood,seed);
 
             /* COMPUTE Partial LIKELIHOODS */
             /* first need to calculate the full cond of a new eta given all others */
@@ -462,7 +460,7 @@ int knot_birth_death(REP *rep,POP *pop,const int sdegree,int iter,unsigned long 
         else { /* a death occurs */
             /* remove a knot */
             if (rep->nKnots-2*sdegree > 1) 
-                death(death_rate,rep,pop,&full_likelihood,4,seed);
+                death(death_rate,rep,&full_likelihood,4,seed);
         }
         if (dflag) {
             free(death_rate);
@@ -533,11 +531,10 @@ void remove_knot(REP *rep,double *V,double *eta,double *knots,const int sdegree,
 
 int add_knot(REP *rep,double *V,double *knots,double *eta,int sdegree,double new_eta,double position)
 {
-    int ii,i,j,k,flag,pos,nKnots;
+    int i,j,k,pos,nKnots;
     double *data;
     void bsplinebasis(int,int,int,double,double *,int,double *);
     
-    flag = 1;
     for (i=0;i<rep->nKnots;i++) {
         if (rep->knots[i] < position) {
             knots[i] = rep->knots[i];

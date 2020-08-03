@@ -7,11 +7,10 @@
  *
  */
 
-#include <fftw3.h>
-#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-
+#include <math.h>
+#include "fftw3.h"
 #include "fNIRS.h"
 #include "randgen.h"
 
@@ -213,7 +212,7 @@ double *convolve(double **design,double **hrf,int *dim_design,int *dim_hrf)
     fftw_plan  setup_inv;
     fftw_complex *XYZ1,*XYZ2;
     int i=0,m=0,g=0;
-    double *X,*A;
+    double *X;
     
     //	printf("%d\n",grid);
     

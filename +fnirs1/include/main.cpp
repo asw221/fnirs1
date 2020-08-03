@@ -67,7 +67,8 @@ int main (int argc, const char * argv[]) {
     
 
     fprintf(flog,"Kernel: %s, Number of Threads = %3d\n",S,nthd_sys);
-
+    free(S);
+    
     load_config_info(pop,argv[1],seed);
  
     load_data_structs(pop,PPP);
@@ -78,7 +79,6 @@ int main (int argc, const char * argv[]) {
 /*****************/
 
     compute_stats(pop,0.95,(const int)(MAX_ITER-BURN_IN));    
-   
     for (int isub=0;isub<pop->N_SUBS;isub++) {
         SUB *sub = &(pop->sub[isub]);
         for (int irep=0;irep<sub->N_REPS;irep++) {

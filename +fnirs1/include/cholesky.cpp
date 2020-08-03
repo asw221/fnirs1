@@ -123,7 +123,7 @@ void cholesky_invert2(int len,double **G)
 {
     /* takes G' from GG' = A and computes A inverse */
     int i,j,k;
-    double temp,**INV;
+    double **INV;
 
     int forward_substitution2(double **U,double *b,int n);
     int cholesky_backsub2(double **G,double *b,int n);
@@ -134,10 +134,9 @@ void cholesky_invert2(int len,double **G)
     for (i=0;i<len;i++)
         INV[i][i] = 1;
     
-    int err;
     for (k=0;k<len;k++) {
-        err = forward_substitution2(G,INV[k],len);
-        err = cholesky_backsub2(G,INV[k],len);
+        forward_substitution2(G,INV[k],len);
+        cholesky_backsub2(G,INV[k],len);
     }
     
     for (i=0;i<len;i++)
@@ -449,12 +448,19 @@ int rmvtvec(double *result,double *A,int size_A,double df,double *mean,unsigned 
 {
     //  A is upper triangular matrix from Cholesky decomp
     double x;
-    double *ran_norm;
+    double *ran_norm,alpha;
+    double beta = 0.5;
     ran_norm = (double *)calloc(size_A,sizeof(double));
     for (int i=0;i<size_A;i++)
         ran_norm[i] = snorm(seed);
-    x = rgamma(0.5*df,0.5,seed);
-    
+    alpha = 0.5*df;
+    x = rgamma(alpha,beta,seed);
+    if (isnan(x))
+        printf("in rmvtvec, rgamma returned nan\n");
+    while (x < 0) {
+        printf("in rmvtvec, rgamma returned a negative number %.20lf alpha = %.20lf beta = %.20lf %lu %lu %lu \n",x,alpha,beta,seed[0],seed[1],seed[2]);
+        x = rgamma(alpha,beta,seed);
+     }   
     for (int i=0;i<size_A;i++) {
         result[i] = 0;
         for (int j=0;j<=i;j++)

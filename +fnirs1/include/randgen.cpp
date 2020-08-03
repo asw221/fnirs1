@@ -220,14 +220,14 @@ double sgamma(double a,unsigned long* seed)
 	static double aa = 0.0;
 	static double aaa = 0.0;
 	static double sqrt32 = 5.65685424949238;
-	static double sgamma,s2,s,d,t,x,u,r,q0,b,si,c,v,q,e,w,p;
+	static double sgamma,s2,s,d,t,x,u,r,q0,b,si,c,v,q,e,w;
 	
     if(a == aa) 
 		goto S2;
     if(a < 1.0) 
 		goto S13;
 
-S1: // STEP  1:  RECALCULATIONS OF S2,S,D IF A HAS CHANGED
+//S1: // STEP  1:  RECALCULATIONS OF S2,S,D IF A HAS CHANGED
     aa = a;
     s2 = a-0.5;
     s = sqrt(s2);
@@ -240,12 +240,12 @@ S2: // STEP  2:  T=STANDARD NORMAL DEVIATE,	 X=(S,1/2)-NORMAL DEVIATE.	 IMMEDIAT
     if(t >= 0.0) 
 		return sgamma;
 
-S3: // STEP  3:  U= 0,1 -UNIFORM SAMPLE. SQUEEZE ACCEPTANCE (S)
+//S3: // STEP  3:  U= 0,1 -UNIFORM SAMPLE. SQUEEZE ACCEPTANCE (S)
     u = kiss(seed);
     if(d*u <= t*t*t) 
 		return sgamma;
 
-S4: // STEP  4:  RECALCULATIONS OF Q0,B,SI,C IF NECESSARY
+//S4: // STEP  4:  RECALCULATIONS OF Q0,B,SI,C IF NECESSARY
 	if (a != aaa) {
 		aaa = a;
 		r = 1.0/ a;
@@ -267,18 +267,18 @@ S4: // STEP  4:  RECALCULATIONS OF Q0,B,SI,C IF NECESSARY
 		}
 	}
 
-S5: //  NO QUOTIENT TEST IF X NOT POSITIVE
+//S5: //  NO QUOTIENT TEST IF X NOT POSITIVE
     if(x <= 0.0) 
 		goto S8;
 	
-S6: // CALCULATION OF V AND QUOTIENT Q
+//S6: // CALCULATION OF V AND QUOTIENT Q
     v = t/(s+s);
     if(fabs(v) > 0.25) 
 		q = q0-s*t+0.25*t*t+(s2+s2)*log1p(v);
 	else
 		q = q0+0.5*t*t*v*(a1+v*(a2+v*(a3+v*(a4+v*(a5+v*(a6+v*(a7+v*(a8+v*a9))))))));
 
-S7: //  QUOTIENT ACCEPTANCE (Q)
+//S7: //  QUOTIENT ACCEPTANCE (Q)
 	if(log1p(-u) <= q) return sgamma;
 
 S8: // E=STANDARD EXPONENTIAL DEVIATE  U= 0,1 -UNIFORM DEVIATE 	 T=(B,SI)-DOUBLE EXPONENTIAL (LAPLACE) SAMPLE
@@ -287,37 +287,72 @@ S8: // E=STANDARD EXPONENTIAL DEVIATE  U= 0,1 -UNIFORM DEVIATE 	 T=(B,SI)-DOUBLE
     u += (u-1.0);
     t = b+fsign(si*e,u);
 
-S9: //   REJECTION IF T .LT. TAU(1) = -.71874483771719
+//S9: //   REJECTION IF T .LT. TAU(1) = -.71874483771719
 	if(t <= -0.71874483771719) 
 		goto S8;
 
-S10: // CALCULATION OF V AND QUOTIENT Q
+//S10: // CALCULATION OF V AND QUOTIENT Q
 	v = t/(s+s);
 	if(fabs(v) > 0.25) 
 		q = q0-s*t+0.25*t*t+(s2+s2)*log1p(v);
 	else
 		q = q0+0.5*t*t*v*(a1+v*(a2+v*(a3+v*(a4+v*(a5+v*(a6+v*(a7+v*(a8+v*a9))))))));
 
-S11: // HAT ACCEPTANCE (H) (IF Q NOT POSITIVE GO TO STEP 8)
+//S11: // HAT ACCEPTANCE (H) (IF Q NOT POSITIVE GO TO STEP 8)
 	if (q <= 0.5)
 		w = q*(e1+q*(e2+q*(e3+q*(e4+q*(e5+q*(e6+q*e7))))));
 	else 
 		w = exp(q)-1.0;
    if(q <= 0.0 || c*fabs(u) > w*exp(e-0.5*t*t)) 
 		goto S8;
-S12: 
+//S12: 
     x = s+0.5*t;
     sgamma = x*x;
     return sgamma;
 	
 S13: // ALTERNATE METHOD FOR PARAMETERS A BELOW 1  (.3678794=EXP(-1.))
-    aa = 0.0;
-    b = 1.0+0.3678794*a;
-
+    double alpha = a;
+    double d1 = 1.0334 - 0.0766*exp(2.2942*alpha);
+    double aa1 = exp(alpha*log(2) + alpha*log1p(-exp(-d1/2.) ) );
+    double b1 = exp(log(alpha) + (alpha-1)*log(d1) - d1);
+    double c1 = aa1 + b1;
+    double X1=0;
+  
+    while (1) {
+        u = kiss(seed);
+        if (u <= aa1/(aa1+b1)) {
+            X1 = -2.*log1p(- exp(log(c1*u)/alpha -2.));
+        }
+        else {
+            X1 = -log(c1*(1-u)/(alpha*exp((alpha-1)*log(d1))));
+        }
+    
+        v = kiss(seed);
+        if (X1 <= d1) {
+            if (log(v) <=  (alpha-1)*log(X1) - X1/2. - (alpha-1)*log(2.) - (alpha-1)*(1-exp(-X1/2.)) ) {
+                return fabs(X1); 
+            }
+        }
+        else {
+            if (log(v) <= (1-alpha)*log(d1/X1)) {
+                return fabs(X1);
+            }
+        }
+    }
+    
+ /*   aa = 0.0;
+    b = 1.0+exp(-1.)*a;
+    int cnt = 0;
 S14:
-    p = b*kiss(seed);
+    cnt++;
+    if (cnt > 20) {
+        printf("oh-oh cnt = %d %.20lf\n",cnt,a);fflush(NULL);
+        exit(2);
+    }
+    double p = b*kiss(seed);
     if(p >= 1.0) 
 		goto S15;
+//    if (p < 0) {printf("sgamma error\n");fflush(NULL);exit(0);}
     sgamma = exp(log(p)/ a);
     if(rexp(1.0,seed) < sgamma) 
 		goto S14;
@@ -327,7 +362,7 @@ S15:
     sgamma = -log((b-p)/ a);
     if(rexp(1.0,seed) < (1.0-a)*log(sgamma)) 
 		goto S14;
-    return sgamma;
+    return sgamma;*/
 }
 
 double fsign( double num, double sign )
@@ -343,19 +378,20 @@ double compute_snorm(double *a,double *d,double *t,double *h,const int bits,cons
 	int i;
 	double snorm,u,s,ustar,aa,w,y,tt;
 	
-S1: u = 0;
+//S1:
+     u = 0;
     while (u <= 1e-37) 
 		u = kiss(seed);
     s = 0.0;
     if(u > 0.5) s = 1.0;
     u += (u-s);
-S2:
+//S2:
     u = bits*u;
     i = (int)floor(u);
 	//    if (i>bits-1) i=bis-1;
     if(i == 0) 
 		goto S9;
-S3: // start center
+//S3: // start center
     ustar = u-(double)i;
     aa = *(a+i);
 S4:
@@ -363,20 +399,20 @@ S4:
 		w = (ustar-*(t+i))**(h+i);
 		goto S17;
 	}
-S5: 	
+//S5: 	
     u = kiss(seed);
     w = u*(*(a+i+1)-aa);
     tt = (0.5*w+aa)*w;
 S6:
 	if (ustar > tt)
 		goto S17;
-S7:	
+//S7:	
 	u = kiss(seed);
 	if (ustar < u) {
 		ustar = kiss(seed);
 		goto S4;
 	}
-S8:	
+//S8:	
 	tt = u;
     ustar = kiss(seed);
 	goto S6;
@@ -387,7 +423,7 @@ S10:
 	u += u;
 	if (u >= 1)
 		goto S12;
-S11:
+//S11:
     aa += *(d+i);
     i += 1;
 	goto S10;
@@ -400,13 +436,13 @@ S14:
 	ustar = kiss(seed);
 	if (ustar > tt) 
 		goto S17;
-S15:
+//S15:
 	u = kiss(seed);
 	if (ustar < u) {
 		u = kiss(seed);
 		goto S13;
 	}
-S16:
+//S16:
     tt = u;
 	goto S14;
 S17:
@@ -874,7 +910,7 @@ double rGIG(double lambda,double a,double b,unsigned long *seed)
 		s = sqrt(4/(alpha*cosh(1) + lambda));
 	else {
 		double a = 1/lambda;
-		double b = log(1 + 1/alpha + sqrt(1/(alpha*alpha) + 2/alpha));
+		double b = log1p(1/alpha + sqrt(1/(alpha*alpha) + 2/alpha));
 		s = (a < b) ?  a:b;
 	}
 	

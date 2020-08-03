@@ -53,19 +53,18 @@ if (isempty(CXX))
 end
 
 FILES = ['main.cpp mcmc.cpp cholesky.cpp randgen.cpp mybspline.cpp ', ...
-    'hrf.cpp knots.cpp statistics.cpp config_info.cpp dlm.cpp ', ...
-    'kernel_reg.cpp marg_eta_updates.cpp'];
+    'hrf.cpp knots.cpp statistics.cpp config_info.cpp dlm.cpp'];
 OBJECTS = strrep(FILES, '.cpp', '.o');
 
 % strrep
 % CXXFLAGS = '-g -O2 -Wall';
-CXXFLAGS = '-g -O2';
+CXXFLAGS = '-O3';
 INC = ['-I', FFTW_HOME];
 LIB = ['-L', FFTW_LIB];
 
-LINK = '-lfftw3 -lfftw3_threads -lm';
+LINK = '-lfftw3 -lfftw3_threads -lm -lomp';
 if (ismac)
-    OMPLINK = '-Xpreprocessor -fopenmp -lomp';
+    OMPLINK = '-Xpreprocessor -fopenmp';
 elseif (isunix)
     OMPLINK = '-fopenmp';
 end

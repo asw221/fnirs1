@@ -47,8 +47,6 @@ void transpose(double *At,double *A,const int nrow,const int ncol)
 
 void AxB(double *C,double *A,double *B,const int nrowA,const int mid,const int ncolB)
 {
-    int nrow,rB,rA;
-    
     for (int k=0,rB=0;k<mid;k++,rB+=ncolB) {
         //int rB = k*ncolB;
         for (int i=0,nrow=0,rA=0;i<nrowA;i++,nrow+=ncolB,rA+=mid) {
@@ -91,7 +89,7 @@ double dlm_forward_filter_draw(REP *rep,sDLM *dlmStruc,const int Pmax, const int
     S0 = 1;
     n0 = 1;            
     S0 = S0/n0;
-    double n,d,S;
+    double n,d;
     
     n = n0;
     d = n0*S0;
@@ -217,6 +215,20 @@ void dlm_forward_filter(REP *rep,sDLM *dlmStruc)
         
         dlmStruc[t].n = dlmStruc[t-1].n*rep->df_delta2 + 1;
         dlmStruc[t].d = rep->df_delta2*dlmStruc[t-1].d + dlmStruc[t-1].S*e*e/Q;
+        if (isnan(dlmStruc[t].d)) {
+            printf("\n forward filter error\n");
+            printf("delta2 = %lf, d[t-1] = %lf, S[t-1] = %lf, e = %lf, Q = %lf\n",
+                     rep->df_delta2,dlmStruc[t-1].d,dlmStruc[t-1].S,e,Q);
+            printf("t = %d, res[t] = %lf f = %lf\n",t,rep->residuals3[t],f);
+            printf("W = \n");
+            for (int i=0;i<P;i++)
+                printf("%lf ",rep->W[t*P+i]);
+            printf("m = \n");
+            for (int i=0;i<P;i++)
+                printf("%lf ",dlmStruc[t-1].m[i]);
+            fflush(NULL);
+             exit(1);
+        }
         dlmStruc[t].S = dlmStruc[t].d/dlmStruc[t].n;
                     
         double tmp = dlmStruc[t].S/dlmStruc[t-1].S;
@@ -242,10 +254,11 @@ void dlm_forward_filter(REP *rep,sDLM *dlmStruc)
 
 void dlm_backward_sampling(REP *rep,sDLM *dlmStruc,const int P,unsigned long *seed)
 {    
-    double *m,*Var;
+    double *m,*Var,*V2,rg;
        
     m = (double *)calloc(P,sizeof(double));
     Var = (double *)calloc(P*P,sizeof(double));   
+    V2 = (double *)calloc(P*P,sizeof(double));   
 
     for (int t=rep->dim_X[0]-2;t>=P;t--) {
         
@@ -256,38 +269,82 @@ void dlm_backward_sampling(REP *rep,sDLM *dlmStruc,const int P,unsigned long *se
 
         // compute mean
                 
-        double tmp = 1-rep->df_delta1;
+        double tmp = 1.-rep->df_delta1;
         for (int i=0;i<P*P;i++)
             Var[i] = dlmStruc[t].C[i]*tmp;
                 
-               
+        for (int i=0;i<P*P;i++)
+            V2[i] = Var[i];   
         // draw new delta[t]
         int err = cholesky_decomp2vec(Var,P);
         if (err) {  // err = 1 means C is SPD
             err = rmvtvec(&(rep->delta[t*P]),Var,P,dlmStruc[t].n,m,seed);
+        int flag = 0;
+        for (int i=0;i<P;i++) {
+            if (isnan(rep->delta[t*P+i]))
+                flag = 1;
+        }
+        if (flag) {
+            printf("P = %d, df = %lf\n",P,dlmStruc[t].n);
+            printf("delta  = \n");
+            for (int i=0;i<P;i++)
+                printf("%lf ",rep->delta[t*P+i]);
+            printf("\n m = \n");
+            for (int i=0;i<P;i++)
+                printf("%lf ",dlmStruc[t].m[i]);
+            printf("\n\n");
+            for (int i=0;i<P*P;i++)
+                printf("%lf \n",Var[i]);
+           fflush(NULL);
+           exit(0);
+        }
         }
         else {
-           printf("error in dlm_backward_sampling, var is not SPD\n");
-           exit(0);
+            printf("error in dlm_backward_sampling, var is not SPD\n");
+            printf("P = %d\n",P);
+            printf("Var = \n");
+            for (int i=0;i<P*P;i++)
+                printf("%lf ",V2[i]);
+            fflush(NULL);
+            printf("C = \n");
+            for (int i=0;i<P*P;i++)
+               printf("%lf ",dlmStruc[t].C[i]);
+            printf("1 - dfdelta1 = %lf\n",1-rep->df_delta1);
+            fflush(NULL);
+            exit(0);
         }
         
         // draw new prec[t]
-//        double Y = rep->df_delta2*rep->d_Y[t+1];
-//        Y += rgamma(0.5*(1-rep->df_delta2)*dlmStruc[t].n,0.5*dlmStruc[t].d,seed);
-//        if (fabs(Y) < 1.2) 
-//            rep->d_Y[t] = Y;
         rep->d_Y[t] = rep->df_delta2*rep->d_Y[t+1];
-        rep->d_Y[t] += rgamma(0.5*(1-rep->df_delta2)*dlmStruc[t].n,0.5*dlmStruc[t].d,seed);
- 
+        rg = rgamma(0.5*(1-rep->df_delta2)*dlmStruc[t].n,0.5*dlmStruc[t].d,seed);
+        rep->d_Y[t] += rg;
+        
+//     if (isnan(rep->d_Y[t])) {
+/*     if (rep->d_Y[t] > 1e4) {
+            printf("what2 %lf %lf\n",0.5*(1-rep->df_delta2)*dlmStruc[t].n,0.5*dlmStruc[t].d);fflush(NULL);
+            printf("rgamma = %lf\n",rg);}
+     
+     int flag = 0;
+    
+     if (isnan(rep->d_Y[t])) 
+            flag = 1;
+     if (flag) {
+             printf("\n%d %lf\n",t,rep->d_Y[t]);
+             printf("%lf, %lf, %lf %lf\n",rep->df_delta2,dlmStruc[t].n,dlmStruc[t].d,rep->d_Y[t+1]);
+             printf("alpha = %lf beta = %lf\n",0.5*(1-rep->df_delta2)*dlmStruc[t].n,0.5*dlmStruc[t].d);
+          printf("%s DLM %lf %lf %d\n",rep->dataname,rep->df_delta1,rep->df_delta2,rep->P);fflush(NULL);
+        exit(0);
+     }*/
+     
     }
     free(m);
     free(Var);
+    free(V2);
 }
 
 void DLMtst(REP *rep,sDLM *dlmStruc,dlm_tst_flag flag,unsigned long *seed) {
-    double n,d;
     double old_loglik,new_loglik;
-    double f,e,*W;
+    double *W;
     void calculate_res3(REP *rep);
     void calW(double *W,double *Y,double *Xb,double *Ve,const int nrow,const int ncol,const int P);
     double tden(double x,double mean,double var,double df);
@@ -299,8 +356,7 @@ void DLMtst(REP *rep,sDLM *dlmStruc,dlm_tst_flag flag,unsigned long *seed) {
 
     int prop_P;
     double new_logprop,old_logprop;
-    int sign;
-    double u;
+
     if (flag == fP) {
         double *CDF1,*PDF1;
         CDF1 = (double *)calloc((maxP-1+1),sizeof(double));
@@ -482,7 +538,9 @@ void DLM(REP *rep,int iter,unsigned long *seed) {
     DLMtst(rep,rep->dlmStruc,fdelta2,seed);
     DLMtst(rep,rep->dlmStruc,fP,seed);
     
-    sampleDLM(rep,rep->dlmStruc,seed);
+//    free(rep->delta);
+//    rep->delta = (double *)calloc(rep->dim_W[0]*rep->P,sizeof(double));        
 
+    sampleDLM(rep,rep->dlmStruc,seed);
 }
 

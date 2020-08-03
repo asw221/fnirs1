@@ -6,7 +6,7 @@ extern FILE *flog;
 
 double *create_bspline_basis(int N,double TIME,double freq,int int_knots,int *dim,double *knots,int type)
 {
-    int i,ii,j,k,*beg,num;
+    int i,j;
     int datalength;
     int sdegree = 4,nknots;
     double *data,*Y;
