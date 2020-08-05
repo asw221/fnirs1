@@ -8,8 +8,8 @@
 %% Locate and organize participant data files
 % Retrieve data files from multiple directories and read patient
 % demographic data
-data_files = fnirs1.get_data_files;
-data_files = [data_files; fnirs1.get_data_files];
+data_files = fnirs1.get_data_files;                % Gather data files from task 1
+data_files = [data_files; fnirs1.get_data_files];  % Concatenate data files from task 2
 data_files = reshape(data_files, numel(data_files), 1);
 
 demo = readtable('~/Box/BayesianDataAnalysis/EN_CH_MA_PA_Tasks_NEW/Demographicinfo.xlsx');

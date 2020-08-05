@@ -3,6 +3,7 @@
 +fnirs1/test_*
 +fnirs1/include/old
 +fnirs1/demo/_fnirs*
++fnirs1/demo/test_*
 
 # Ignore compiled files and Makefile
 +fnirs1/*.mexmaci64

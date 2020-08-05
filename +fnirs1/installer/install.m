@@ -104,7 +104,7 @@ cd ../../
 % the new path
 if (~any(strcmp(pwd, regexp(path, pathsep, 'split'))))
     addpath(pwd)
-    savepath(fullfile(userpath, 'pathdef.m'))
+    savepath(fullfile(matlabroot, 'toolbox', 'local', 'pathdef.m'))
 end
 
 % --- Cleanup and checks --------------------------------------------------
