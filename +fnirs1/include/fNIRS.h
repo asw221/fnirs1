@@ -20,7 +20,6 @@ typedef struct replication{
     double *pi_Y;
     double pi_eta;
     double pi_delta;
-//    int *Ne;
     int *dim_X;
     int *dim_W;
     int *dim_V;
@@ -40,7 +39,6 @@ typedef struct replication{
     double *eta;
     double preceta;
     double *delta;
-//    double *m;
     double precdelta;
     double *beta;
     double *Xbeta;
@@ -53,11 +51,6 @@ typedef struct replication{
     double *V;
     double *Veta;
     double *mVeta;
-//    double *lambda;
-//    double *H;
-//    double *J;
-//    double *Hbeta;
-//    double *Jeta;
     sDLM *dlmStruc;
     
     double *mdelta;
@@ -68,7 +61,6 @@ typedef struct replication{
     double *mean_fit;
     double md1;
     double md2;
-//    int    *tableP;
     double *residuals;
     double *residuals1;
     double *residuals2;
@@ -108,9 +100,6 @@ typedef struct subdata{
     double subsampled_freq;
     REP *rep;
     double *beta;  // subject level effects  (Nb*Ns)
-//    double *conv_beta;  // converted subject level effects
-//    double precbeta;  // event level r.e. precision, one for each stimulus
-//    double *conv_precbeta;  // r.e. precision
     int *dim_X;
     double *X; // (Nb*Ns)x(Ncov*Nb*Ns)  covariate information for each subject
     
@@ -122,7 +111,9 @@ typedef struct popdata{
     int GRP;
     int N_SUBS;
     int No_replicates;
-    int Ncov; // number of covariates, defaults to 1 for intercept
+    int N_RE;  // number of random effects
+    int N_Fixed; // number of Fixed effects
+    int Ncov; // number of covariate
     int Nb;     // number of basis in the HRF
     int Ns;      // number of stimuli (or events)
     int non_parm; // canonical HRF = 0, non-parm B-SPlINE = 1

@@ -10,7 +10,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include "fftw3.h"
+#include <fftw3.h>
+
 #include "fNIRS.h"
 #include "randgen.h"
 
@@ -38,7 +39,7 @@ double *DCT_basis(int N,double T,int period,int *K)
 //    return(HRF)
 //}
 
-void proj(double *out,double *v,double *u,int length)
+void proj(double *out,double *v,double *u,int length) // projects v onto u
 {
     double num=0,den=0;
     
@@ -49,6 +50,41 @@ void proj(double *out,double *v,double *u,int length)
     num = num/den;
     for (int i=0;i<length;i++)
         out[i] = num*u[i];
+}
+
+void gram_schmidt(double *in, const int Nrow,const int Ncol,int Normalize)
+{
+    double *tin,*out;
+    void transpose(double *At,double *A,const int nrow,const int ncol);
+    double dotProd(double *x,double *y,const int dim);
+    void addtodouble(double *A,double *B,const int dim,const int sign);
+    void cA(double *C,const double c,double *A,const int dim);
+
+    out = (double *)calloc(Nrow,sizeof(double));
+    tin = (double *)calloc(Nrow*Ncol,sizeof(double));
+    
+    transpose(tin,in,Nrow,Ncol);
+
+    for (int i=1;i<Ncol;i++) {
+        for (int j=0;j<i;j++) {
+            // proj column i onto column j
+            proj(out,&tin[i*Nrow],&tin[j*Nrow],Nrow);
+            //sub  projection from column i
+            addtodouble(&tin[i*Nrow],out,Nrow,-1);
+       }
+    }
+    // normalize
+    if (Normalize) {
+        for (int i=0;i<Ncol;i++) {
+            double tmp =  dotProd(&tin[i*Nrow],&tin[i*Nrow],Nrow);
+            tmp = sqrt(tmp);
+            cA(&tin[i*Nrow],1./tmp,&tin[i*Nrow],Nrow); // divide tin by tmp
+        }
+    }
+    transpose(in,tin,Ncol,Nrow);
+        
+    free(tin);
+    free(out);
 }
 
 double **canonical_HRF(int T,double freq,int *dim_HRF,double m,double var,int type)

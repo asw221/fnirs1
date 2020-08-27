@@ -257,8 +257,10 @@ end
 % make sub-directories for each channel and load -> write data
 nChannels = 0;
 setupFiles = {};
+WARNINGS_GENERATED = false;
 fprintf("Reading participant data files and writing temporaries.\n" + ...
     "This may take a minute\n");
+
 for i = 1:N
     % check that each data file exists and has the correct fields
     [~, participantFileBaseName] = fileparts(dataFiles{i});
@@ -365,12 +367,14 @@ for i = 1:N
         
         % write out data
         if (~write_matrix(outcome(:, ch), participantDataFile))
-            remove_folder_and_contents(outdir);
-            error('Could not write %s', participantDataFile);
+            % remove_folder_and_contents(outdir);
+            warning('Could not write %s', participantDataFile);
+            WARNINGS_GENERATED = true;
         end
         if (~write_matrix(data.s, participantDesignFile))
-            remove_folder_and_contents(outdir);
-            error('Could not write %s', participantDesignFile);
+            % remove_folder_and_contents(outdir);
+            warning('Could not write %s', participantDesignFile);
+            WARNINGS_GENERATED = true;
         end
         
         % append subject info to end of channel setup file
@@ -384,7 +388,13 @@ for i = 1:N
     end  % for ch = options.SpecificChannels
     fprintf('\tFiles written for: %s\n', participantFileBaseName);
 end  % for i = 1:N
-fprintf('Model setup complete\n');
+
+if WARNINGS_GENERATED
+    remove_folder_and_contents(outdir);
+    error('Warnings generated. Please double check participant data. Setup files have been removed.');
+else
+    fprintf('Model setup complete\n');
+end
 end
 
 

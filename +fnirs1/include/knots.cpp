@@ -395,7 +395,7 @@ void death(double *death_rate,REP *rep,double *full_likelihood,int sdegree,unsig
 
 int knot_birth_death(REP *rep,int pknots,const int sdegree,unsigned long *seed){
     
-    int i,aaa,dflag,max_knots = 76;
+    int i,aaa,dflag,max_knots = 54;
     double Birth_rate,prior_rate,T,full_likelihood,max,S;
     double Death_rate,*death_rate;
 
@@ -405,16 +405,11 @@ int knot_birth_death(REP *rep,int pknots,const int sdegree,unsigned long *seed){
     
     // set simulation time
 
-//    prior_rate = rep->nKnots;
-    prior_rate = rgamma(0.5*pknots,0.5,seed);
-    Birth_rate = pknots;
- /*   if (iter > 1000)
-        T= 1./Birth_rate;
-    else*/
-//    if (iter <= 24)
-//        T = 2.5;
-//    else
-        T = 0.25;//1./Birth_rate;
+ //   prior_rate = rep->nKnots-2*sdegree;  // gives a uniform prior on the number of knots (0 - MAX NUMBER)
+
+    prior_rate = rgamma(0.5*pknots,0.5,seed);  // gives a negative binomial prior on the number of knots
+    Birth_rate = 1;
+    T = 1./Birth_rate;
         
     calculate_residuals(rep,rep->P);
     
@@ -438,7 +433,7 @@ int knot_birth_death(REP *rep,int pknots,const int sdegree,unsigned long *seed){
        S += rexp(Birth_rate + Death_rate,seed);
  //printf("%lf %lf %lf\n",S,T,Death_rate);
         if (S > T)  break;
-        if (aaa > 1000) break;
+        if (aaa > 100) break;
         /* SIMULATE JUMP TYPE (BIRTH OR DEATH) */
         if (!dflag)
             max = 1.1;

@@ -53,21 +53,24 @@ if (isempty(CXX))
 end
 
 FILES = ['main.cpp mcmc.cpp cholesky.cpp randgen.cpp mybspline.cpp ', ...
-    'hrf.cpp knots.cpp statistics.cpp config_info.cpp dlm.cpp'];
+    'hrf.cpp kernel_reg.cpp knots.cpp statistics.cpp ', ...
+    'config_info.cpp dlm.cpp'];
 OBJECTS = strrep(FILES, '.cpp', '.o');
 
-% strrep
+
 % CXXFLAGS = '-g -O2 -Wall';
 CXXFLAGS = '-O3';
 INC = ['-I', FFTW_HOME];
 LIB = ['-L', FFTW_LIB];
 
-LINK = '-lfftw3 -lfftw3_threads -lm -lomp';
+% LINK = '-lfftw3 -lfftw3_threads -lm -lomp';
+LINK = '-lfftw3 -lfftw3_threads -lm';
 if (ismac)
-    OMPLINK = '-Xpreprocessor -fopenmp';
+    % OMPLINK = '-Xpreprocessor -fopenmp';
 elseif (isunix)
-    OMPLINK = '-fopenmp';
+    % OMPLINK = '-fopenmp';
 end
+OMPLINK = '';  % Remove OMP linking in current version
 
 
 % --- Write Makefile and compile code -------------------------------------
@@ -87,8 +90,8 @@ fprintf(makefileid, 'INC      := %s\n', INC);
 fprintf(makefileid, 'LIB      := %s\n', LIB);
 fprintf(makefileid, 'LINK     := %s\n', LINK);
 fprintf(makefileid, 'OMPLINK  := %s\n\n', OMPLINK);
-fprintf(makefileid, 'all: $(OBJ)\n\t$(CXX) $(CXXFLAGS) $(OBJ) $(LIB) $(LINK) $(OMPLINK) -o fnirsdlm\n\n');
-fprintf(makefileid, '$(OBJ): $(SRC)\n\t$(CXX) -c $(CXXFLAGS) $(SRC) $(INC) $(OMPLINK)\n\n');
+fprintf(makefileid, 'all: $(OBJ)\n\t$(CXX) $(CXXFLAGS) $(OBJ) $(LIB) $(LINK) -o fnirsdlm\n\n');
+fprintf(makefileid, '$(OBJ): $(SRC)\n\t$(CXX) -c $(CXXFLAGS) $(SRC)\n\n');
 fprintf(makefileid, '{OBJ}: cholesky.h randgen.h\n\n');
 fprintf(makefileid, 'clean:\n\trm -f fnirsdlm *.o\n');
 fclose(makefileid);

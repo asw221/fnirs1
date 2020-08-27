@@ -91,7 +91,7 @@ success = false(size(setupFiles));
 
 % loop over setup files and fit models given in each
 original_dir = pwd;
-for i = 1:length(setupFiles)
+parfor i = 1:length(setupFiles)
     if (exist(setupFiles{i}, 'file') ~= 2)
         error('''%s'' not found or is not a valid model setup file', ...
             setupFiles{i});

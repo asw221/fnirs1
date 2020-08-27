@@ -699,6 +699,7 @@ f}*/
 
 int rpois(double xm, unsigned long *seed)
 {
+    int a;
 	double PI = 3.141592653589793;
 	static double sq,alxm,g,oldm=(-1.0);
 	double em,t,y;

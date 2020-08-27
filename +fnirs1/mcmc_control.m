@@ -7,10 +7,10 @@ classdef mcmc_control
     %   not to include the HRF derivatives in model output.
     %
     % Example usage:
-    %   maxIterations = 1e4;        % default = 3,000
+    %   maxIterations = 1e4;        % default = 4,000
     %   hrfDerivatives = 1;         % default = 2  (Temporal & Dispersion Derivatives)
     %   expectedKnots = 12;         % default = 15
-    %   burnin = 4e3;               % default = (maxIterations / 3)
+    %   burnin = 4e3;               % default = (maxIterations / 2)
     %   ctrl = fnirs1.mcmc_control(maxIterations, hrfDerivataves, expectedKnots, burnin);
     %   disp(ctrl.maxIterations)
     %
@@ -22,14 +22,14 @@ properties (SetAccess = private)
     burnin;              % Number of burnin iterations for MCMC chain (default = maxIterations / 2)
     expectedKnots;       % Expected number of spline-basis knots to model HRF (default = 15)
     hrfDerivatives;      % Include temporal derivatives (0 = none, 1 = Temporal, 2 = Temporal & Dispersion)
-    maxIterations;       % Maximum number of MCMC iterations (default = 20,000)
+    maxIterations;       % Maximum number of MCMC iterations (default = 4,000)
 end
 methods
     function obj = mcmc_control(varargin)
         % Construct an mcmc_control object; ensure any inputs are valid
         
         % defaults
-        obj.maxIterations = 3e3;
+        obj.maxIterations = 4e3;
         obj.expectedKnots = 15;
         obj.hrfDerivatives = 2;
         if (nargin >= 1)
@@ -39,8 +39,8 @@ methods
                 error("MCMC max iterations must be a positive integer");
             end
         end
-        % burnin default: maxIterations / 3
-        obj.burnin = fix(obj.maxIterations / 3);
+        % burnin default: maxIterations / 2
+        obj.burnin = fix(obj.maxIterations / 2);
         if (nargin >= 2)
             if (isscalar(varargin{2}))
                 obj.hrfDerivatives = double(varargin{2});

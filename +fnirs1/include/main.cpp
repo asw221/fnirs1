@@ -31,9 +31,9 @@ int main (int argc, const char * argv[]) {
     void delete_SUB_Struc(SUB *sub);
     void delete_POP_Struc(POP *pop);
     void load_config_info(POP *,const char *,unsigned long *seed);
-    void load_data_structs(POP *,int);
+    void load_data_structs(POP *,int,unsigned long *);
     void mcmc(POP *pop,unsigned long *seed);
-    void compute_stats(POP *pop,const double cred_int,const int Niter);   
+    void compute_stats(POP *pop,const double cred_int,const int,const int);   
     
 	M = exp(-PREC*log(2.0));  /* PREC should be set to the compiler precisions 32 or 64 bit */
 
@@ -71,14 +71,14 @@ int main (int argc, const char * argv[]) {
     
     load_config_info(pop,argv[1],seed);
  
-    load_data_structs(pop,PPP);
+    load_data_structs(pop,PPP,seed);
 /*** CALL MCMC ***/
     fprintf(flog,"ENTERING MCMC\n");fflush(NULL);
     mcmc(pop,seed);
     fprintf(flog,"EXITING MCMC\n");fflush(NULL);
 /*****************/
 
-    compute_stats(pop,0.95,(const int)(MAX_ITER-BURN_IN));    
+    compute_stats(pop,0.95,(const int)MAX_ITER,(const int)BURN_IN);    
     for (int isub=0;isub<pop->N_SUBS;isub++) {
         SUB *sub = &(pop->sub[isub]);
         for (int irep=0;irep<sub->N_REPS;irep++) {

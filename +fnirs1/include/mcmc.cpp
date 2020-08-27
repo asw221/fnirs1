@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include <omp.h>
+//#include <omp.h>
 #include "randgen.h"
 #include "cholesky.h"
 #include <time.h>
@@ -60,6 +60,7 @@ void mcmc(POP *pop,unsigned long *seed) {
  
     void DLM(REP *rep,int iter,unsigned long *seed);
     void draw_precYstart(REP *rep,unsigned long *seed);
+    void draw_precY(REP *rep,unsigned long *seed);
     void draw_reprec(POP *pop,SUB *sub,unsigned long *seed);
     void draw_re_rep_prec(POP *pop,SUB *sub,unsigned long *seed);
  
@@ -69,7 +70,8 @@ void mcmc(POP *pop,unsigned long *seed) {
     void draw_beta_eta(POP *pop,SUB *sub,REP *rep,unsigned long *seed);
     void draw_pop_beta(POP *pop,SUB *sub,unsigned long *seed);
     void draw_sub_beta(POP *pop,SUB *sub,unsigned long *seed);    
-    
+    double DLMloglik(REP *rep,double sfreq,int,unsigned long *seed);
+  
    
     pop->ED = 0;
        
@@ -100,15 +102,15 @@ void mcmc(POP *pop,unsigned long *seed) {
         }
     }
  
-    int nthd;
+/*    int nthd;
     if (pop->N_SUBS > 1) 
         nthd = nthd_sys;
     else
         nthd = 1;
     omp_set_dynamic(0);
     fprintf(flog,"%d\n",nthd);
-    omp_set_num_threads(nthd);
-    
+    omp_set_num_threads(1);
+    */
     int *v = (int *)malloc(NN*sizeof(int));
     
     for (iter=0;iter<=MAX_ITER;iter++) {
@@ -129,45 +131,49 @@ void mcmc(POP *pop,unsigned long *seed) {
         for (int i=0;i<3;i++)
             seed2[i] = seed[i];
             
-        #pragma omp parallel for firstprivate(seed2) private(j)
+ //       #pragma omp parallel for firstprivate(seed2) private(j)
         for (i=0;i<pop->N_SUBS;i++) {
             for (j=0;j<pop->sub[i].N_REPS;j++) {
-                knot_birth_death(&(pop->sub[i].rep[j]),pop->knots,sdegree,seed2);
+                knot_birth_death(&(pop->sub[i].rep[j]),pop->knots,sdegree,seed);
             }
-        }        
-        #pragma omp parallel for firstprivate(seed2) private(j)
+        }  
+              
+//        #pragma omp parallel for firstprivate(seed2) private(j)
         for (i=0;i<pop->N_SUBS;i++) {
             for (j=0;j<pop->sub[i].N_REPS;j++) {
-                int imax = pop->sub[i].rep->nKnots-sdegree*2;
+                int imax = pop->sub[i].rep[j].nKnots-sdegree*2;
+                imax = (int)ceil((double)imax/4.);
                 for (int k=0;k<imax;k++)
-                    draw_knot_locations(&(pop->sub[i].rep[j]),sdegree,seed2);
-            }
-        }
-        #pragma omp parallel for firstprivate(seed2) private(j)
-        for (i=0;i<pop->N_SUBS;i++) {
-            for (j=0;j<pop->sub[i].N_REPS;j++) {
-                draw_beta_eta(pop,&(pop->sub[i]),&(pop->sub[i].rep[j]),seed2);
-            }
-        }
-        #pragma omp parallel for firstprivate(seed2) private(j)
-        for (i=0;i<pop->N_SUBS;i++) {
-            for (j=0;j<pop->sub[i].N_REPS;j++) {
-                draw_precYstart(&(pop->sub[i].rep[j]),seed2);
+                    draw_knot_locations(&(pop->sub[i].rep[j]),sdegree,seed);
             }
         }
 //        #pragma omp parallel for firstprivate(seed2) private(j)
         for (i=0;i<pop->N_SUBS;i++) {
             for (j=0;j<pop->sub[i].N_REPS;j++) {
-                DLM(&(pop->sub[i].rep[j]),iter,seed2);
+                draw_beta_eta(pop,&(pop->sub[i]),&(pop->sub[i].rep[j]),seed);
             }
         }
-         
+  
+//        #pragma omp parallel for firstprivate(seed2) private(j)
+        for (i=0;i<pop->N_SUBS;i++) {
+            for (j=0;j<pop->sub[i].N_REPS;j++) {
+                draw_precYstart(&(pop->sub[i].rep[j]),seed);
+            }
+        }
+       
+ //       #pragma omp parallel for firstprivate(seed2) private(j)
+        for (i=0;i<pop->N_SUBS;i++) {
+            for (j=0;j<pop->sub[i].N_REPS;j++) {
+                DLM(&(pop->sub[i].rep[j]),iter,seed);
+            }
+        }
+        
         if (pop->GRP) {
             draw_re_rep_prec(pop,pop->sub,seed);
             
             int isub2;
             if (!pop->No_replicates) {
-                #pragma omp parallel for
+//                #pragma omp parallel for
                 for (isub2=0;isub2<pop->N_SUBS;isub2++)
                     draw_sub_beta(pop,tmpsub[isub2],seed);
  
@@ -186,13 +192,13 @@ void mcmc(POP *pop,unsigned long *seed) {
                     if ((iter <= BURN_IN) && (iter > 1)) {
                         double rt;
                      
-                        rt = (double)rep->accept[0]/(double)rep->attempt[0];
+                     /*   rt = (double)rep->accept[0]/(double)rep->attempt[0];
                         adjust_acceptance2(rt,&(rep->prop_sd[0]),0.35);
                         rep->accept[0] = rep->attempt[0] = 0;
 
                         rt = (double)rep->accept[1]/(double)rep->attempt[1];
                         adjust_acceptance2(rt,&(rep->prop_sd[1]),0.35);
-                        rep->accept[1] = rep->attempt[1] = 0;
+                        rep->accept[1] = rep->attempt[1] = 0;*/
                         
                         rt = (double)rep->accept[3]/(double)rep->attempt[3];
                         adjust_acceptance2(rt,&(rep->prop_sd[3]),0.35);
@@ -203,7 +209,7 @@ void mcmc(POP *pop,unsigned long *seed) {
             }
         }
         
-        if (!(iter%100)) {
+        if (!(iter%10)) {
             for (isub=0;isub<pop->N_SUBS;isub++) {
                 sub = &(pop->sub[isub]);
                 
@@ -231,23 +237,14 @@ void mcmc(POP *pop,unsigned long *seed) {
                 
                 for (irep=0;irep<pop->sub[isub].N_REPS;irep++) {
                     rep = &(sub->rep[irep]);
-
-                    for (i=rep->P;i<rep->dim_W[0];i++) {
-                        for (j=0;j<rep->dim_W[1];j++) {
-                            rep->mdelta[i*maxP+j] += rep->delta[i*rep->dim_W[1]+j];
-                            rep->mdelta2[i*rep->dim_W[1]+j] += rep->delta[i*rep->dim_W[1]+j]*rep->delta[i*rep->dim_W[1]+j];
-                        }
-                        for (j=rep->dim_W[1];j<maxP;j++)
-                            rep->mdelta[i*maxP+j] = 0;
-                    }
  
                     for (i=0;i<rep->dim_X[0];i++) {
                         rep->sd_Y[i] += rep->d_Y[i];
                     }
                     
-                    for (i=0;i<rep->dim_V[1];i++)
-                        fprintf(rep->fout_eta,"%lf ",rep->eta[i]);
-                    fprintf(rep->fout_eta,"\n");
+//                    for (i=0;i<rep->dim_V[1];i++)
+//                        fprintf(rep->fout_eta,"%lf ",rep->eta[i]);
+//                    fprintf(rep->fout_eta,"\n");
                    
  
                     for (i=0;i<rep->dim_X[0];i++) {
@@ -263,7 +260,16 @@ void mcmc(POP *pop,unsigned long *seed) {
                         rep->mVeta[i] += rep->Veta[i];
                     for (i=0;i<rep->dim_W[0];i++)
                         rep->mWdelta[i] += rep->Wdelta[i];
-                    
+                }
+            }
+        }          
+         if ((iter>0)) {
+            for (isub=0;isub<pop->N_SUBS;isub++) {
+                sub = &(pop->sub[isub]);
+                
+                for (irep=0;irep<pop->sub[isub].N_REPS;irep++) {
+                    rep = &(sub->rep[irep]);
+                  
                     fprintf(rep->fout_dlm,"%lf %lf %d\n",rep->df_delta1,rep->df_delta2,rep->P);
                     
                     fprintf(rep->fout_nknots,"%d ",rep->nKnots-2*sdegree);
@@ -287,9 +293,9 @@ void mcmc(POP *pop,unsigned long *seed) {
                 fprintf(pop->fout_beta,"%lf ",pop->beta[i]);
             fprintf(pop->fout_beta,"\n");
             
-            for (i=0;i<pop->Nb*pop->Ns;i++)
-                fprintf(pop->fout_reprec,"%lf ",pop->re_prec[i]);
-            fprintf(pop->fout_reprec,"\n");
+ //           for (i=0;i<pop->Nb*pop->Ns;i++)
+ //               fprintf(pop->fout_reprec,"%lf ",pop->re_prec[i]);
+ //           fprintf(pop->fout_reprec,"\n");
 
             for (i=0;i<pop->Nb*pop->Ns;i++)
                 fprintf(pop->fout_re_rep_prec,"%lf ",pop->re_rep_prec[i]);
@@ -320,20 +326,20 @@ void mcmc(POP *pop,unsigned long *seed) {
         fclose(sub->fout_beta);
     }
 
-    for (isub=0;isub<pop->N_SUBS;isub++) {
+ /*   for (isub=0;isub<pop->N_SUBS;isub++) {
         sub = &(pop->sub[isub]);
         for (irep=0;irep<sub->N_REPS;irep++) {
             rep = &(sub->rep[irep]);
             for (i=0;i<rep->dim_W[0];i++) {
-                for (j=0;j<maxP;j++) {
-                    rep->mdelta[i*maxP+j] /= (double)(MAX_ITER-BURN_IN);
-                    fprintf(rep->fout_delta,"%lf ",rep->mdelta[i*maxP+j]);
+                for (j=0;j<rep->dim_W[1];j++) {
+                    rep->mdelta[i*rep->dim_W[1]+j] /= (double)(MAX_ITER-BURN_IN);
+                    fprintf(rep->fout_delta,"%lf ",rep->mdelta[i*rep->dim_W[1]+j]);
                 }
                 fprintf(rep->fout_delta,"\n");                  
             }                
             fclose(rep->fout_delta);
         }
-    }
+    }*/
     
    for (isub=0;isub<pop->N_SUBS;isub++) {
         sub = &(pop->sub[isub]);
@@ -437,6 +443,40 @@ void draw_precYstart(REP *rep,unsigned long *seed) {
     for (int i=0;i<rep->P;i++)
         rep->d_Y[i] = rep->precYstart;
 
+}
+
+void draw_precY(REP *rep,unsigned long *seed)
+{
+    int N,P;
+    double ALPHA=0.01,BETA=0.01;
+    double a,b,factor;
+    void calculate_residuals(REP *rep,int P);
+    
+    N = rep->dim_X[0];
+    P = rep->P;
+     
+    calculate_residuals(rep,P);
+
+    a = (double)(N-P)/2. + ALPHA;
+    
+    b = 0;
+    for (int i=P;i<N;i++) {
+        if (rep->dY[i])
+            b += rep->residuals[i]*rep->residuals[i];
+        else
+            b += rep->residuals[i]*rep->residuals[i]*rep->LY;
+    }        
+    b = BETA + 0.5*b;
+    double tmp = rgamma(a,b,seed);
+    
+    for (int i=P;i<N;i++) {
+        if (rep->dY[i])
+            factor = 1;
+        else
+            factor = rep->LY;
+
+        rep->d_Y[i] = factor*tmp;
+    }
 }
 
 
@@ -653,8 +693,8 @@ void draw_re_rep_prec(POP *pop,SUB *sub,unsigned long *seed) {
     Xb = (double *)calloc(M,sizeof(double));
     ALPHA = -0.5; // flat prior on the s.d. (see Gelman's paper)
     BETA  = 0.;
-//    ALPHA = 2.;
-//    BETA  = 3.;
+//   ALPHA = 4.;
+//    BETA  = 2.;
         
     for (int is=0;is<pop->Ns;is++) {
         for (int j=0;j<pop->Nb;j++) {
@@ -677,9 +717,8 @@ void draw_re_rep_prec(POP *pop,SUB *sub,unsigned long *seed) {
             }
             fflush(NULL);
             double tmp = rgamma(ALPHA + 0.5*(double)cnt,BETA + 0.5*rss,seed);
-            if (tmp < 100.) {
+            if ((.01 < tmp) && (tmp < 25.)) 
                 pop->re_rep_prec[is*pop->Nb+j] = tmp;
-            }
         }
     }
     free(Xb);
@@ -896,9 +935,8 @@ void draw_pop_beta(POP *pop,SUB *sub,unsigned long *seed) {
         for (int i=0;i<N;i++)
             M[i] += tmpM[i];
 
-        for (int i=0;i<N;i++)
-            for (int j=0;j<N;j++)
-                P[i*N+j] += tmpP[i*N+j];
+        for (int i=0;i<N*N;i++)
+            P[i] += tmpP[i];
     }
     
     int err = cholesky_decomp2vec(P,N);

@@ -17,6 +17,7 @@ double dens_gamma(double x,double alpha,double beta) {
 double tden(double x,double mean,double var,double df) {
     double tmp,value = 0;
     double pi = 3.14159;
+    int a;
     
     tmp = (x-mean)*(x-mean)/var;
     value = lgamma(0.5*(df+1)) - lgamma(0.5*df) - 0.5*log(df*pi*var) - 0.5*(df+1)*log1p(tmp/df);
@@ -84,35 +85,35 @@ void compute_credible_interval(double *interval,const double prob,double *x,cons
     compute_quantile(&interval[1],(const double)phigh,(const double *)x,len);
 }
 
-void compute_stats(POP *pop,const double cred_int,const int Niter) {
-    int N;
+void compute_stats(POP *pop,const double cred_int,const int Max_Iter,const int Burn_In) {
+    int N,Niter;
     double *X,*Xt,mean,sd;
     double interval[2];
     FILE *fparmest,*fout;
+    void transpose(double *At,double *A,const int nrow,const int ncol);
 
     fparmest = fopen("./log/Parameter_Estimates.log","w");
- 
+    Niter = Max_Iter - Burn_In;
+
     if (pop->GRP) {
         fout = fopen("./log/pop_beta.log","r");
 
         N = 0;
-        X = (double *)calloc(Niter*pop->Ncov,sizeof(double));
+        X = (double *)calloc(Max_Iter*pop->Ncov,sizeof(double));
         while (fscanf(fout,"%lf ",&X[N]) != EOF)
             N++;
         fclose(fout);
         
-        Xt = (double *)calloc(Niter*pop->Ncov,sizeof(double));
-        for (int i=0;i<Niter;i++)
-            for (int j=0;j<pop->Ncov;j++)
-                Xt[j*Niter + i]  = X[i*pop->Ncov + j];
+        Xt = (double *)calloc(Max_Iter*pop->Ncov,sizeof(double));
+        transpose(Xt,X,Max_Iter,(const int)pop->Ncov);
+//        for (int i=0;i<Max_Iter;i++)
+//            for (int j=0;j<pop->Ncov;j++)
+//                Xt[j*Max_Iter + i]  = X[i*pop->Ncov + j];
         free(X);
-       
- //       N /= Niter*pop->Ns;
- //       N = pop->Nb*pop->Nc;
- //       printf("N = %d, Niter = %d pop->Ns = %d\n",N,Niter,pop->Ns);
+        
         for (int i=0;i<pop->Ncov;i++) {
-            compute_mean_sd(&mean,&sd,(const double *)&Xt[i*Niter],(const int)Niter);
-            compute_credible_interval(interval,cred_int,&Xt[i*Niter],(const int)Niter);
+            compute_mean_sd(&mean,&sd,(const double *)&Xt[i*Max_Iter+Burn_In],(const int)Niter);
+            compute_credible_interval(interval,cred_int,&Xt[i*Max_Iter+Burn_In],(const int)Niter);
             if (i == 0)
                 fprintf(fparmest,"Pop Level Parameters: \n");
             fprintf(fparmest,"\t%30s mean = %.3lf\tsd = %.3lf\n",pop->covnames[i],mean,sd);
@@ -126,8 +127,8 @@ void compute_stats(POP *pop,const double cred_int,const int Niter) {
     char *CC = (char *)calloc(300,sizeof(char));
     char *S = (char *)calloc(400,sizeof(char));
     
-    X = (double *)calloc((Niter)*pop->Nb*pop->Ns,sizeof(double));
-    Xt = (double *)calloc((Niter)*pop->Nb*pop->Ns,sizeof(double));
+    X = (double *)calloc((Max_Iter)*pop->Nb*pop->Ns,sizeof(double));
+    Xt = (double *)calloc((Max_Iter)*pop->Nb*pop->Ns,sizeof(double));
     for (int isub=0;isub<pop->N_SUBS;isub++) {
         for (int irep=0;irep<pop->sub[isub].N_REPS;irep++) {
             
@@ -142,9 +143,10 @@ void compute_stats(POP *pop,const double cred_int,const int Niter) {
             while (fscanf(fout,"%lf ",&X[N]) != EOF)
                 N++;
             fclose(fout);
-            for (int i=0;i<(Niter);i++)
-                for (int j=0;j<pop->Nb*pop->Ns;j++)
-                    Xt[j*Niter + i]  = X[i*pop->Nb*pop->Ns + j];
+            transpose(Xt,X,Max_Iter,(const int)(pop->Nb*pop->Ns));
+//            for (int i=0;i<(Max_Iter);i++)
+//                for (int j=0;j<pop->Nb*pop->Ns;j++)
+//                    Xt[j*Max_Iter + i]  = X[i*pop->Nb*pop->Ns + j];
 
 //    NEED TO FIX THIS
             fprintf(fparmest,"\n\n\t%s\n",CC);
@@ -153,10 +155,10 @@ void compute_stats(POP *pop,const double cred_int,const int Niter) {
                 fprintf(fparmest,"\n\t\tCond = %d\n\n",istim);
                 
                 for (int j=0;j<pop->Nb;j++) {
-                    ii = Niter*(j*pop->Ns + istim);
+                    ii = Max_Iter*(j*pop->Ns + istim)+Burn_In;
                     compute_mean_sd(&mean,&sd,(const double *)&Xt[ii],(const int)Niter);
                     compute_credible_interval(interval,cred_int,&Xt[ii],(const int)Niter);
- //                   ii += Niter;
+ //                   ii += Max_Iter;
                     
                     if (j==0)
                         fprintf(fparmest,"\n\t\t\tHRF\n\n");
@@ -181,11 +183,12 @@ void compute_stats(POP *pop,const double cred_int,const int Niter) {
             while (fscanf(fout,"%lf ",&X[N]) != EOF)
                 N++;
             fclose(fout);
-            for (int i=0;i<Niter;i++)
-                for (int j=0;j<pop->Nb*pop->Ns;j++)
-                    Xt[j*Niter + i]  = X[i*pop->Nb*pop->Ns + j];
+            transpose(Xt,X,Max_Iter,(const int)(pop->Nb*pop->Ns));
+//            for (int i=0;i<Max_Iter;i++)
+//                for (int j=0;j<pop->Nb*pop->Ns;j++)
+//                    Xt[j*Max_Iter + i]  = X[i*pop->Nb*pop->Ns + j];
 
-            N /= Niter*pop->Ns;
+            N /= Max_Iter*pop->Ns;
             
             fprintf(fparmest,"\n\n\t%s, Subject Level Results\n",CC);
             for (int istim = 0;istim<pop->Ns;istim++) {
@@ -197,8 +200,8 @@ void compute_stats(POP *pop,const double cred_int,const int Niter) {
                     else
                         fprintf(fparmest,"\n\t\t\tHRF Temporal Derivative\n\n");
                     
-                   compute_mean_sd(&mean,&sd,(const double *)&Xt[(istim*N+j)*Niter],(const int)Niter);
-                   compute_credible_interval(interval,cred_int,&Xt[(istim*N+j)*Niter],(const int)Niter);
+                   compute_mean_sd(&mean,&sd,(const double *)&Xt[(istim*N+j)*Max_Iter+Burn_In],(const int)Niter);
+                   compute_credible_interval(interval,cred_int,&Xt[(istim*N+j)*Max_Iter+Burn_In],(const int)Niter);
  
                    fprintf(fparmest,"\t\t\t\tHb0:\tmean = %.3lf\tsd = %.3lf\n",mean,sd);
 
