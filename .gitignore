@@ -9,6 +9,7 @@
 +fnirs1/*.mexmaci64
 +fnirs1/*.cpp
 +fnirs1/include/*.o
++fnirs1/include/fnirsdlm
 ## +fnirs1/include/Makefile
 
 
