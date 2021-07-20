@@ -1,7 +1,7 @@
 # Ignore the tests dirs/files
 +fnirs1/tests
 +fnirs1/test_*
-+fnirs1/include/old
++fnirs1/include/old*
 +fnirs1/demo/_fnirs*
 +fnirs1/demo/test_*
 
