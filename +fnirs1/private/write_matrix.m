@@ -5,7 +5,7 @@ success = false;
 if (~isnumeric(M))
     error("Input M must be numeric-type");
 end
-if (~(ischar(filename) || isstring(output_path)))
+if (~(ischar(filename) || isstring(filename)))
     error("Input filename must be a valid path name");
 end
 fid = fopen(filename, 'w+');

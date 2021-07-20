@@ -1,4 +1,4 @@
-int rwishart(double *,double *,int,int,unsigned long *);
+int rwishart(double **r,double **,int,int,unsigned long *);
 int rmvnorm(double *result,double **A,int size_A,double *mean,unsigned long *seed,int flag);
 int rmvnorm2(double *result,double **A,int size_A,double *mean,unsigned long *seed,int flag);
 int rmvnorm3(double *result,double **A,int size_A,double *mean,unsigned long *seed,int flag);

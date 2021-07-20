@@ -7,7 +7,7 @@ function files = get_data_files()
 %   files = fnirs1.get_data_files;
 %
 if ~(fnirs1.utils.interactive)
-    error('fnirs1.get_data_files cannot launch GUI for file selection');
+    error('%s cannot launch GUI for file selection', mfilename);
 end
 [files, path] = uigetfile(fullfile(last_path, '*'), ...
     'Select data file(s)', 'MultiSelect', 'on');
@@ -15,7 +15,7 @@ if (isnumeric(files))
     error("No data files selected");
 end
 last_path(path);  % save the path for later - user experience
-files = cellstr(files);
+files = cellstr(files)';
 for i = 1:numel(files)
     files{i} = fullfile(path, files{i});
 end

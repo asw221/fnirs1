@@ -5,8 +5,6 @@
 //#include <omp.h>
 #include "fNIRS.h"
 
-extern int DEBUG;
-extern int TVAR_FLAG;
 extern int maxDLM;
 extern int maxP;
 extern int MAX_ITER;
@@ -30,7 +28,7 @@ void load_config_info(POP *pop,const char *config_file,unsigned long *seed)
     FILE *fconfig,*fcovar=NULL;
 
     void center_covars(double *X,const int nrow,const int ncol); 
-    pop->CI_len = 0;
+   
     S = (char *)malloc(1000*sizeof(char));
     fconfig = fopen(config_file,"r");
     while (fgets(S,1000,fconfig)) {
@@ -78,10 +76,6 @@ void load_config_info(POP *pop,const char *config_file,unsigned long *seed)
                     start = 1;
             }
     	    fseed = fopen(seedMat,"r+");
-    	    if (fseed == NULL) {
-    	        printf("Seed file not found\n");
-    	        exit(1);
-    	    }
 	        for (int i=0;i<3;i++) {
 		        int ifs = fscanf(fseed,"%lu ",&(seed[i]));
 		        if (ifs == 0) {ifs = 0;}
@@ -179,8 +173,6 @@ void load_config_info(POP *pop,const char *config_file,unsigned long *seed)
                         strcpy(pop->sub[idata].rep[ir].dataname,CC);
                     }
                     ir++;
-                    if (ir == pop->sub[idata].N_REPS)
-                        break;
                 }
                 if (!strcmp(C,"="))
                     start = 1;
@@ -200,9 +192,7 @@ void load_config_info(POP *pop,const char *config_file,unsigned long *seed)
                         strcpy(pop->sub[ides].rep[ir].designname,CC);
                     }
                     ir++;
-                    if (ir == pop->sub[ides].N_REPS)
-                        break;
-                }   
+                }
                 if (!strcmp(C,"="))
                     start = 1;
             }
@@ -218,41 +208,7 @@ void load_config_info(POP *pop,const char *config_file,unsigned long *seed)
                     pop->Nb = 1;
             }
         }
-        else if (!strcmp(C,"Confidence_Intervals")) {
-            int start = 0;
-            int im = 0;
-            double *x = (double *)calloc(20,sizeof(double));
-            while ((C = strtok(NULL," ")) != NULL) {
-                if (start) {
-//                    printf("%s \n",C);
-                    x[im] = atof(C);   
-                    im++;
-                    if (im == 21) 
-                        break;
-                }    
-                if (!strcmp(C,"="))
-                    start = 1;
-            }
-            if (x[0] == -9) {
-                pop->CI_len = 1;
-                pop->CI_percent = (double*)calloc(1,sizeof(double));
-                pop->CI_percent[0] = 0.95;
-            }
-            else {
-                pop->CI_len = im;
-                pop->CI_percent = (double *)calloc(im,sizeof(double));
-                for (int jm=0;jm<im;jm++) 
-                   pop->CI_percent[jm] = x[jm];
-            }
-            free(x);     
-        }
     }
-    if (pop->CI_len == 0) {
-        pop->CI_len = 1;
-        pop->CI_percent = (double*)calloc(1,sizeof(double));
-        pop->CI_percent[0] = 0.95;
-    }
-      
     pop->non_parm = 0;
     fclose(fconfig);
     free(S);
@@ -289,7 +245,7 @@ void load_config_info(POP *pop,const char *config_file,unsigned long *seed)
         rewind(fcovar);       
         for (isub=0;isub<pop->N_SUBS;isub++) {
             if (pop->sub[isub].N_REPS > 1) {
-                pop->No_replicates = 1;
+                pop->No_replicates = 0;
                 break;
             }
         }
@@ -321,7 +277,7 @@ void load_config_info(POP *pop,const char *config_file,unsigned long *seed)
         free(cname);
         pop->Ncov = i;
         
-        int Nrow = pop->Nb*pop->Ns*2;
+        int Nrow = pop->Nb*pop->Ns;
         int Ncol = pop->Ncov;
         for (isub=0;isub<pop->N_SUBS;isub++) {
             sub = &(pop->sub[isub]);
@@ -407,16 +363,15 @@ void load_config_info(POP *pop,const char *config_file,unsigned long *seed)
     else {
         pop->Ncov = 1;
     }
-    int ntask = 2;
-    int redim = 2*pop->Nb*pop->Ns;
+     
 //    pop->beta = (double *)calloc(pop->Ncov*pop->Nb*pop->Ns,sizeof(double));
     pop->beta = (double *)calloc(pop->Ncov,sizeof(double));
-    pop->re_rep_prec = (double *)calloc(redim*redim,sizeof(double));
-    pop->re_prec = (double *)calloc(redim*redim,sizeof(double));
-    for (int i=0;i<redim;i++)
-        pop->re_prec[i*redim+i] = .1;
-    for (int i=0;i<redim;i++)
-        pop->re_rep_prec[i*redim+i] = .1;
+    pop->re_rep_prec = (double *)calloc(pop->Nb*pop->Ns,sizeof(double));
+    pop->re_prec = (double *)calloc(pop->Nb*pop->Ns,sizeof(double));
+    for (int i=0;i<pop->Nb*pop->Ns;i++)
+        pop->re_prec[i] = .1;
+    for (int i=0;i<pop->Nb*pop->Ns;i++)
+        pop->re_rep_prec[i] = .1;
 
     for (int i=0;i<pop->N_SUBS;i++) {
         fprintf(flog,"Reps SUB %d = %d\n",i,pop->sub[i].N_REPS);
@@ -432,17 +387,17 @@ void load_config_info(POP *pop,const char *config_file,unsigned long *seed)
         for (int j=0;j<sub->N_REPS;j++) {
             rep = &(sub->rep[j]);
             fprintf(flog,"pop.sub[%d].rep[%d].dataname = %s\n",i,j,rep->dataname);
-        }fflush(NULL);
+        }
     }
     for (int i=0;i<pop->N_SUBS;i++) {
         sub = &(pop->sub[i]);
         for (int j=0;j<sub->N_REPS;j++) {
             rep = &(sub->rep[j]);
             fprintf(flog,"pop.sub[%d].rep[%d].designname = %s\n",i,j,rep->designname);
-        }fflush(NULL);
+        }
     }
     fprintf(flog,"non_parm = %d\n",pop->non_parm);
-    fprintf(flog,"Nb = %d\n",pop->Nb);fflush(NULL);
+    fprintf(flog,"Nb = %d\n",pop->Nb);
     if (covarMat != NULL)
         free(covarMat);
     if (covarNames != NULL)
@@ -469,18 +424,17 @@ void load_data_structs(POP *pop,int PPP,unsigned long *seed)
     void remove_beginning_and_end(double freq,double *Y,double *X,int *nrow,int ncol,int *N_start,int *N_end);
     void compute_mean_sd(double *mean,double *sd,const double *x,const int len);
     void kernel_reg(double *f,double *Y,double *X,double lambda,int N);
-//    double DLMloglik(REP *rep,double sfreq,int,unsigned long *seed);
-//    double DLMloglik2(REP *rep,double sfreq,unsigned long *seed);
-//    double DLMloglik3(REP *rep,double sfreq,unsigned long *seed);
+    double DLMloglik(REP *rep,double sfreq,int,unsigned long *seed);
+    double DLMloglik2(REP *rep,double sfreq,unsigned long *seed);
+    double DLMloglik3(REP *rep,double sfreq,unsigned long *seed);
     void gram_schmidt(double *in, const int Nrow,const int Ncol,int Normalize);
 
-    S = (char *)calloc(500,sizeof(char));
-    C = (char *)calloc(500,sizeof(char));
- 
+    S = (char *)calloc(300,sizeof(char));
+    C = (char *)calloc(300,sizeof(char));
     dim_design = (int *)calloc(2,sizeof(int));
     dim_HRF = (int *)calloc(2,sizeof(int));
  
-//    pop->fout_reprec = fopen("./log/pop_reprec.log","w");
+    pop->fout_reprec = fopen("./log/pop_reprec.log","w");
     pop->fout_re_rep_prec = fopen("./log/pop_rerepprec.log","w");
     pop->fout_beta = fopen("./log/pop_beta.log","w");
 
@@ -499,7 +453,6 @@ void load_data_structs(POP *pop,int PPP,unsigned long *seed)
     double maxSD = -1; 
  
     int irep;
-
 //    #pragma omp parallel for private(fout,irep)
     for (int isub=0;isub<pop->N_SUBS;isub++) {
 //        sub = &(pop->sub[isub]);
@@ -508,6 +461,7 @@ void load_data_structs(POP *pop,int PPP,unsigned long *seed)
  //           rep = &(sub->rep[irep]);
   //          fprintf(flog,"%s\n",pop->sub[isub].rep[irep].dataname);fflush(flog);
             fout = fopen(pop->sub[isub].rep[irep].dataname,"r");
+ 
 // change this back 
   /*          double xy;
             N = 0;
@@ -519,7 +473,7 @@ void load_data_structs(POP *pop,int PPP,unsigned long *seed)
                 N++;
   
             rewind(fout);
-            pop->sub[isub].rep[irep].orig_length = N;
+          
             double *YY;
             YY = (double *)calloc(N,sizeof(double));
             for (int i=0;i<N;i++) {
@@ -529,11 +483,11 @@ void load_data_structs(POP *pop,int PPP,unsigned long *seed)
 //                int ifs = fscanf(fout,"%lf %lf",&(YY[i]),&xy);
             fclose(fout);
 // ***********
+                    
             // subsample data
             double sfreq = pop->sub[isub].subsampled_freq;
             int subN;
             if (pop->sub[isub].freq > sfreq) {
- //           printf("%s \n",pop->sub[isub].rep[irep].dataname);fflush(NULL);
                 pop->sub[isub].rep[irep].Y = subsample_data(YY,N,&subN,pop->sub[isub].freq,sfreq);
                 free(YY);
                 sfreq = pop->sub[isub].freq/round(pop->sub[isub].freq/sfreq);
@@ -547,19 +501,12 @@ void load_data_structs(POP *pop,int PPP,unsigned long *seed)
                 pop->sub[isub].rep[irep].N = subN;
             }
 
-            if (TVAR_FLAG) 
-                pop->sub[isub].rep[irep].df_delta1 = 0.9999;
-            else 
-                pop->sub[isub].rep[irep].df_delta1 = 1.;
-            
-            pop->sub[isub].rep[irep].df_delta2 = 0.999;
-            pop->sub[isub].rep[irep].P = 5;
-          // double mll = DLMloglik(&(pop->sub[isub].rep[irep]),sfreq,100,seed);
- //           double mll = DLMloglik3(&(pop->sub[isub].rep[irep]),sfreq,seed);
-//            fprintf(flog,"%s %lf %lf %d\n",pop->sub[isub].rep[irep].dataname,pop->sub[isub].rep[irep].df_delta1,pop->sub[isub].rep[irep].df_delta2,pop->sub[isub].rep[irep].P);fflush(NULL);
+           // double mll = DLMloglik(&(pop->sub[isub].rep[irep]),sfreq,100,seed);
+            double mll = DLMloglik3(&(pop->sub[isub].rep[irep]),sfreq,seed);
+            fprintf(flog,"%s %lf %lf %d\n",pop->sub[isub].rep[irep].dataname,pop->sub[isub].rep[irep].df_delta1,pop->sub[isub].rep[irep].df_delta2,pop->sub[isub].rep[irep].P);fflush(NULL);
         }
-    } 
-        
+    }
+
     for (int isub=0;isub<pop->N_SUBS;isub++) {
          sub = &(pop->sub[isub]);
          for (int irep=0;irep<sub->N_REPS;irep++) {
@@ -574,6 +521,8 @@ void load_data_structs(POP *pop,int PPP,unsigned long *seed)
                 rep->Y[i] -= mean;  
             for (int i=0;i<rep->N;i++)
                 rep->Y[i] /= sd;        
+//            for (int i=0;i<rep->N;i++)
+//                rep->Y[i] *= 10e6;
             sdcnt += 1;      
         }
     }
@@ -652,14 +601,7 @@ void load_data_structs(POP *pop,int PPP,unsigned long *seed)
 
             rep->X = convolve(rep->design,HRF,dim_design,dim_HRF);
              // subsample design
-            
-            if (rep->dim_design[0] != rep->orig_length) {
-                printf("%s and %s are not of the same length...exiting program\n",rep->dataname,rep->designname);
-                printf("\t length of %s is %d, that of %s is %d\n",rep->dataname,rep->orig_length,rep->designname,rep->dim_design[0]);
-                fprintf(flog,"%s and %s are not of the same length...exiting program\n",rep->dataname,rep->designname);
-                fprintf(flog,"length of %s is %d, that of %s is %d\n",rep->dataname,rep->orig_length,rep->designname,rep->dim_design[0]);
-                exit(1);
-            }
+           
             sfreq = sub->subsampled_freq;
             if (sub->freq > sfreq) {
                  double *XXX;        
@@ -684,26 +626,7 @@ void load_data_structs(POP *pop,int PPP,unsigned long *seed)
             double tmp = 0;
 
             //orthonormalize each HRF and it's derivatives
-/* double *tmpX = (double *)calloc(rep->dim_X[0]*dim_HRF[1],sizeof(double));
-    for (int i=0;i<dim_design[1];i++) {  // normalize
-        //copy part of X to tmpX (GS transposes tmpX and then back)
-        for (int j=0;j<rep->dim_X[0];j++) 
-            for (int k=0;k<dim_HRF[1];k++)
-                tmpX[j*dim_HRF[1] + k] = rep->X[j*rep->dim_X[1]+k+(i*dim_HRF[1])];
-        // gram_schmidt(tmpX,(const int)rep->dim_X[0],(const int)dim_HRF[1],1);
-        max = 0;
-        for (int j=0;j<rep->dim_X[0];j++)
-            max = (max > tmpX[j*dim_HRF[1]]) ? max:tmpX[j*dim_HRF[1]];
-        for (int j=0;j<rep->dim_X[0]*dim_HRF[1];j++)
-            tmpX[j] /= max;
-        // copy tmpX to the correct part of X
-        for (int j=0;j<rep->dim_X[0];j++) 
-            for (int k=0;k<dim_HRF[1];k++)
-                rep->X[j*rep->dim_X[1]+k+(i*dim_HRF[1])] = tmpX[j*dim_HRF[1] + k];
-                                
-    }
-    free(tmpX);*/
- /*           double *tmpX = (double *)calloc(rep->dim_X[0]*dim_HRF[1],sizeof(double));
+            double *tmpX = (double *)calloc(rep->dim_X[0]*dim_HRF[1],sizeof(double));
             for (int i=0;i<dim_design[1];i++) {  // normalize
                 //copy part of X to tmpX (GS transposes tmpX and then back)
                 for (int j=0;j<rep->dim_X[0];j++) 
@@ -716,23 +639,30 @@ void load_data_structs(POP *pop,int PPP,unsigned long *seed)
                         rep->X[j*rep->dim_X[1]+k+(i*dim_design[1])] = tmpX[j*dim_HRF[1] + k];
                 
             }
-            free(tmpX);*/
- 
-            double *tmpX = (double *)calloc(rep->dim_X[0]*dim_HRF[1],sizeof(double));
-            for (int i=0;i<dim_design[1];i++) {  // normalize
-                //copy part of X to tmpX (GS transposes tmpX and then back)
-                for (int j=0;j<rep->dim_X[0];j++) 
-                    for (int k=0;k<dim_HRF[1];k++)
-                        tmpX[j*dim_HRF[1] + k] = rep->X[j*rep->dim_X[1]+k+(i*dim_HRF[1])];
-                gram_schmidt(tmpX,(const int)rep->dim_X[0],(const int)dim_HRF[1],1);
-               // copy tmpX to the correct part of X
-                 for (int j=0;j<rep->dim_X[0];j++) 
-                    for (int k=0;k<dim_HRF[1];k++)
-                        rep->X[j*rep->dim_X[1]+k+(i*dim_HRF[1])] = tmpX[j*dim_HRF[1] + k];
-                
-            }
             free(tmpX);
- 
+ /*           for (int j=0;j<rep->dim_X[1];j++) { // normalize
+                tmp = 0;
+//                max = 0;
+                for (int i=0;i<rep->dim_X[0];i++) 
+                    tmp += rep->X[i*rep->dim_X[1]+j]*rep->X[i*rep->dim_X[1]+j];
+                tmp = sqrt(tmp);
+                for (int i=0;i<rep->dim_X[0];i++)
+                    rep->X[i*rep->dim_X[1]+j] /= tmp;
+            }*/
+/*          for (int j=0;j<rep->dim_X[1];j++) { // normalize
+                for (int i=0;i<rep->dim_X[0];i++) 
+                    rep->X[i*rep->dim_X[1]+j] /= (10.*max);
+            }
+            fprintf(flog,"max = %lf\n",max);fflush(NULL);      
+     */     
+/*            N = N-1;
+            rep->dim_X[0] = N;
+            for (int i=0;i<N;i++)
+                rep->Y[i] = rep->Y[i+1] - rep->Y[i];
+            for (int j=0;j<rep->dim_X[1];j++) { // normalize
+                for (int i=0;i<rep->dim_X[0];i++)
+                    rep->X[i*rep->dim_X[1]+j] = rep->X[(i+1)*rep->dim_X[1]+j] - rep->X[i*rep->dim_X[1]+j];
+            }*/
             // reorder
             if (dim_HRF[1] > 1) {
                 int *perm = (int *)calloc(rep->dim_X[1],sizeof(int));
@@ -753,25 +683,6 @@ void load_data_structs(POP *pop,int PPP,unsigned long *seed)
                 free(perm);
                 free(xperm);
             }
- /*           if (dim_HRF[1] > 1) {
-                int *perm = (int *)calloc(rep->dim_X[1],sizeof(int));
-                double *xperm = (double *)calloc(rep->dim_X[1],sizeof(double));
-                for (int k=0;k<dim_design[1];k++){
-                    int j = k*dim_HRF[1];
-                    for (int i=k;i<rep->dim_X[1];i+=dim_design[1]) {
-                        perm[i] = j;
-                        j++;
-                    }
-                }
-                for (int i=0;i<rep->dim_X[0];i++) {
-                    for (int j=0;j<rep->dim_X[1];j++)
-                        xperm[j] = rep->X[i*rep->dim_X[1] + perm[j]];
-                    for (int j=0;j<rep->dim_X[1];j++)
-                        rep->X[i*rep->dim_X[1] + j] = xperm[j];
-                }
-                free(perm);
-                free(xperm);
-            }*/
             // CREATE Initial B-Spline BASIS TO REMOVE LOW FREQUENCY DRIFT
             
             double T = (double)(N-1)/(double)sfreq;
@@ -783,32 +694,31 @@ void load_data_structs(POP *pop,int PPP,unsigned long *seed)
             
             pop->sub[isub].rep[irep].V = create_bspline_basis(N,T,pop->sub[isub].freq,pop->sub[isub].rep[irep].nKnots,pop->sub[isub].rep[irep].dim_V,pop->sub[isub].rep[irep].knots,0);
             pop->sub[isub].rep[irep].nKnots += 6;                  
+ 
 
             fprintf(flog,"NKNOTS = %d, dim_V[1] = %d\n",pop->sub[isub].rep[irep].nKnots,pop->sub[isub].rep[irep].dim_V[1]);fflush(NULL);
             for (int i=0;i<pop->sub[isub].rep[irep].nKnots;i++)
                 fprintf(flog,"%lf ",pop->sub[isub].rep[irep].knots[i]);
-            fprintf(flog,"\n");fflush(NULL);
+            fprintf(flog,"\n");
             /*** initialize TVAR TERMS ***/
             
+            
             pop->sub[isub].rep[irep].dim_W = (int *)calloc(2,sizeof(int));
-            pop->sub[isub].rep[irep].dim_W[0] = pop->sub[isub].rep[irep].dim_X[0];
-            pop->sub[isub].rep[irep].dim_V[0] = pop->sub[isub].rep[irep].dim_X[0];
+            pop->sub[isub].rep[irep].dim_W[0] = N;
             pop->sub[isub].rep[irep].dim_W[1] = pop->sub[isub].rep[irep].P;
-
-            fprintf(flog,"A");fflush(NULL);
-            pop->sub[isub].rep[irep].W = (double *)calloc(pop->sub[isub].rep[irep].dim_W[0]*PPP,sizeof(double)); // needed to select DLM hyperpriors
+            
+            pop->sub[isub].rep[irep].W = (double *)calloc(N*PPP,sizeof(double)); // needed to select DLM hyperpriors
  //           pop->sub[isub].rep[irep].tableP = (int *)calloc(maxP+1,sizeof(int));
             pop->sub[isub].rep[irep].md1 = 0;
             pop->sub[isub].rep[irep].md2 = 0;
             
-            for (int i=PPP;i<pop->sub[isub].rep[irep].dim_W[0];i++) {
+            for (int i=PPP;i<N;i++) {
                 for (int j=0;j<PPP;j++) {
                     pop->sub[isub].rep[irep].W[i*PPP + PPP-j-1] = pop->sub[isub].rep[irep].Y[i+j-PPP];
                 }
             }
-            fprintf(flog,"B");fflush(NULL);
            
-         /*** intialize remaining data ***/
+            /*** intialize remaining data ***/
             
             pop->sub[isub].rep[irep].residuals = (double *)calloc(pop->sub[isub].rep[irep].dim_X[0],sizeof(double));
             pop->sub[isub].rep[irep].residuals1 = (double *)calloc(pop->sub[isub].rep[irep].dim_X[0],sizeof(double));
@@ -846,10 +756,9 @@ void load_data_structs(POP *pop,int PPP,unsigned long *seed)
             pop->sub[isub].rep[irep].precY[2] = 1./64.;
  //           pop->sub[isub].rep[irep].md_Y = (double *)calloc(pop->sub[isub].rep[irep].dim_X[0],sizeof(double));
             pop->sub[isub].rep[irep].sd_Y = (double *)calloc(pop->sub[isub].rep[irep].dim_X[0],sizeof(double));
-            fprintf(flog,"C");fflush(NULL);
-           
+            
             double mean;
-            compute_mean_sd(&mean,&sd,rep->Y,(const int)pop->sub[isub].rep[irep].dim_X[0]);
+            compute_mean_sd(&mean,&sd,rep->Y,(const int)N);
             double vary = sd*sd;
             
             pop->sub[isub].rep[irep].preceta = 1.0/vary;
@@ -875,67 +784,48 @@ void load_data_structs(POP *pop,int PPP,unsigned long *seed)
             pop->sub[isub].rep[irep].prop_sd[2] = 0.1;
             pop->sub[isub].rep[irep].prop_sd[3] = 500;//2*pop->sub[isub].subsampled_freq;//100;
             
-            pop->sub[isub].rep[irep].alpha_MH = (double *)calloc(4,sizeof(double));
-
             pop->sub[isub].rep[irep].accept = (int *)calloc(4,sizeof(int));
             pop->sub[isub].rep[irep].attempt = (int *)calloc(4,sizeof(int));
-            fprintf(flog,"D\n");fflush(NULL);
-
-            pop->sub[isub].rep[irep].data = (double *)calloc(pop->sub[isub].rep[irep].dim_V[0],sizeof(double));
-            for (int i=0;i<pop->sub[isub].rep[irep].dim_V[0];i++)
-                pop->sub[isub].rep[irep].data[i] = (double)i;           
-
+            
             /*** open log files for output ***/
             
-            char *token;
-            
             C = strcpy(C,pop->sub[isub].rep[irep].dataname);
-            token = strtok(C,"/");
-            while(token != NULL ) {
-                C = strcpy(C,token);
-                token = strtok(NULL,"/");
-            }
-            
             C = strtok(C,".");
- //           printf("%s\n",C);
-           
-            if (DEBUG) {
-                S = strcpy(S,"./log/");
-                S = strcat(S,C);
-                S = strcat(S,"_eta.log");
-                pop->sub[isub].rep[irep].fout_eta = fopen(S,"w");
-         
-                S = strcpy(S,"./log/");
-                S = strcat(S,C);
-                S = strcat(S,"_DLM.log");
-                pop->sub[isub].rep[irep].fout_dlm = fopen(S,"w");
-
-                S = strcpy(S,"./log/");
-                S = strcat(S,C);
-                S = strcat(S,"_nknots.log");
-                pop->sub[isub].rep[irep].fout_nknots = fopen(S,"w");
-
-                S = strcpy(S,"./log/");
-                S = strcat(S,C);
-                S = strcat(S,"_knots.log");
-                pop->sub[isub].rep[irep].fout_knots = fopen(S,"w");
-
-/*            S = strcpy(S,"./log/");
-            S = strcat(S,C);
-            S = strcat(S,"_delta.log");
-            pop->sub[isub].rep[irep].fout_delta = fopen(S,"w");
-*/
-            }
             
+            S = strcpy(S,"./log/");
+            S = strcat(S,C);
+            S = strcat(S,"_eta.log");
+            pop->sub[isub].rep[irep].fout_eta = fopen(S,"w");
+          
+            S = strcpy(S,"./log/");
+            S = strcat(S,C);
+            S = strcat(S,"_DLM.log");
+            pop->sub[isub].rep[irep].fout_dlm = fopen(S,"w+");
+
             S = strcpy(S,"./log/");
             S = strcat(S,C);
             S = strcat(S,"_rawres.log");
             pop->sub[isub].rep[irep].fout_res = fopen(S,"w");
- 
+
             S = strcpy(S,"./log/");
             S = strcat(S,C);
             S = strcat(S,"_stdres.log");
             pop->sub[isub].rep[irep].fout_stdres = fopen(S,"w");
+
+            S = strcpy(S,"./log/");
+            S = strcat(S,C);
+            S = strcat(S,"_delta.log");
+            pop->sub[isub].rep[irep].fout_delta = fopen(S,"w");
+
+            S = strcpy(S,"./log/");
+            S = strcat(S,C);
+            S = strcat(S,"_nknots.log");
+            pop->sub[isub].rep[irep].fout_nknots = fopen(S,"w");
+
+            S = strcpy(S,"./log/");
+            S = strcat(S,C);
+            S = strcat(S,"_knots.log");
+            pop->sub[isub].rep[irep].fout_knots = fopen(S,"w");
 
             S = strcpy(S,"./log/");
             S = strcat(S,C);
@@ -961,10 +851,9 @@ void load_data_structs(POP *pop,int PPP,unsigned long *seed)
             S = strcat(S,C);
             S = strcat(S,"_X.log");
             pop->sub[isub].rep[irep].fout_X = fopen(S,"w");
- 
+
             int nrow = pop->sub[isub].rep[irep].dim_X[0];
             int ncol = pop->sub[isub].rep[irep].dim_X[1];
- //           printf("%d %d\n",nrow,ncol);
             for (int i=0;i<nrow;i++) {
                 for (int j=0;j<ncol;j++) {
                     fprintf(pop->sub[isub].rep[irep].fout_X,"%.20lf ",pop->sub[isub].rep[irep].X[i*ncol+j]);
@@ -977,17 +866,17 @@ void load_data_structs(POP *pop,int PPP,unsigned long *seed)
             S = strcat(S,C);
             S = strcat(S,"_Y.log");
             pop->sub[isub].rep[irep].fout_Y = fopen(S,"w");
-       
+          
             nrow = pop->sub[isub].rep[irep].dim_X[0];
             for (int i=0;i<nrow;i++) 
                     fprintf(pop->sub[isub].rep[irep].fout_Y,"%.20lf ",pop->sub[isub].rep[irep].Y[i]);
             fclose(pop->sub[isub].rep[irep].fout_Y);
-
+  
             S = strcpy(S,"./log/");
             S = strcat(S,C);
             S = strcat(S,"_HRF.log");
             pop->sub[isub].rep[irep].fout_HRF = fopen(S,"w");
-
+ 
             S = strcpy(S,"./log/");
             S = strcat(S,C);
             S = strcat(S,"_beta.log");
@@ -1001,7 +890,7 @@ void load_data_structs(POP *pop,int PPP,unsigned long *seed)
                 fprintf(pop->sub[isub].rep[irep].fout_HRF,"\n");
             }
             fclose(pop->sub[isub].rep[irep].fout_HRF);
-          
+            
             for (int i=0;i<nrow;i++)
                 free(HRF[i]);
             free(HRF);
@@ -1012,14 +901,12 @@ void load_data_structs(POP *pop,int PPP,unsigned long *seed)
             pop->sub[isub].rep[irep].fout_Xbeta = fopen(S,"w");
         }
         
-        if (!pop->No_replicates) {
-            S = strcpy(S,"./log/sub_");
-            S = strcat(S,C);
-            S = strcat(S,"_beta.log");
-            pop->sub[isub].fout_beta = fopen(S,"w");
+        S = strcpy(S,"./log/sub_");
+        S = strcat(S,C);
+        S = strcat(S,"_beta.log");
+        pop->sub[isub].fout_beta = fopen(S,"w");
  
-            pop->sub[isub].beta = (double *)calloc(pop->Nb*(pop->Ns),sizeof(double));
-        }
+        pop->sub[isub].beta = (double *)calloc(pop->Nb*(pop->Ns),sizeof(double));
     }
  
     free(C);
@@ -1096,14 +983,10 @@ double *subsample_data(double *old_TS,int len,int *sublen,double true_freq,doubl
         (*sublen)++;
     new_TS = (double *)calloc(*sublen,sizeof(double));
     int n = 0;
-//    if (*sublen*8 == 16520)
-//    printf("sublen = %d ",*sublen);
     for (int i=0;i<len;i+=sub_samp) {
         new_TS[n] = old_TS[i];
         n++;
     }
-//    if (*sublen*8 == 16520)
-//    printf("n = %d\n",n);fflush(NULL);
     return new_TS;        
 }
 
@@ -1162,10 +1045,11 @@ void delete_REP_Struc(REP *rep) {
     for (int i=0;i<rep->dim_design[0];i++)
         free(rep->design[i]);
     free(rep->design);
+//    free(rep->pi_Y);
     free(rep->dY);
     free(rep->d_Y);
+//    free(rep->md_Y);
     free(rep->sd_Y);
-    free(rep->data);
     free(rep->Y);
     free(rep->precY);
     free(rep->eta);
@@ -1197,8 +1081,7 @@ void delete_REP_Struc(REP *rep) {
     free(rep->attempt);
     free(rep->accept);
     free(rep->knots);
-    free(rep->alpha_MH);
-            
+        
     int len = rep->dim_X[0];
     for (int k=0;k<len;k++)
         free(rep->dlmStruc[k].m);
@@ -1213,7 +1096,7 @@ void delete_REP_Struc(REP *rep) {
 
 void delete_SUB_Struc(SUB *sub) {
     free(sub->rep);
-//    free(sub->beta);
+    free(sub->beta);
     free(sub->dim_X);
     free(sub->X);
 }
@@ -1223,7 +1106,6 @@ void delete_POP_Struc(POP *pop) {
     free(pop->beta);
     free(pop->re_rep_prec);
     free(pop->re_prec);
-    free(pop->CI_percent);
     if (pop->GRP) {
         for (int i=0;i<pop->Ncov;i++)
             free(pop->covnames[i]);

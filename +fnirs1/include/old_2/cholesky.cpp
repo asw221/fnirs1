@@ -472,7 +472,7 @@ int rmvtvec(double *result,double *A,int size_A,double df,double *mean,unsigned 
     return 1;
 }
 
-int rwishart(double *result,double *S,int size_S,int df,unsigned long *seed)
+int rwishart(double **result,double **S,int size_S,int df,unsigned long *seed)
 {
 	int i,j,k,flag;
 	double *x,*zero;
@@ -484,16 +484,16 @@ int rwishart(double *result,double *S,int size_S,int df,unsigned long *seed)
 	x = (double *)calloc(size_S,sizeof(double));
 	zero = (double *)calloc(size_S,sizeof(double));
 	
-	for (i=0;i<size_S*size_S;i++)
-	    result[i] = 0;
-	    
+	for (i=0;i<size_S;i++) 
+		for (j=0;j<size_S;j++) 
+			result[i][j] = 0;
 	for (k=0;k<df;k++) {
 		if (k > 0)
 			flag = 1;
-		if (rmvnorm3vec(x,S,size_S,zero,seed,flag)) {
+		if (rmvnorm(x,S,size_S,zero,seed,flag)) {
 			for (i=0;i<size_S;i++) 
 				for (j=0;j<size_S;j++) 
-					result[i*size_S+j] += x[i]*x[j];
+					result[i][j] += x[i]*x[j];
 		}
 		else {
 			free(zero);

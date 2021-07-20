@@ -15,7 +15,7 @@ void kernel_reg(double *f,double *Y,double *X,double lambda,int N)
         double tmp = 1 - i*i*i/lambda_cubed;
         K[i] = factor * tmp*tmp*tmp;
     }
-    
+
     int lower,upper;
     double denom;
     for (int t=0;t<N;t++) {
@@ -31,5 +31,4 @@ void kernel_reg(double *f,double *Y,double *X,double lambda,int N)
             f[t] += K[abs(i-(int)X[t])]*Y[i];
         f[t] /= denom;
     }
-    free(K);
 }

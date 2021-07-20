@@ -13,7 +13,6 @@ typedef struct replication{
     char *dataname;
     char *designname;
     double **design;
-    int orig_length;
     int N;
     int    dim_design[2];
     double mhrf;
@@ -33,7 +32,6 @@ typedef struct replication{
     double pi;
     double *md_Y;
     double *sd_Y;
-    double *data;
     double *Y;
     double *precY;
     double LY;
@@ -69,8 +67,7 @@ typedef struct replication{
     double *residuals3;
     double *residuals4;
     double *residuals5;
-   
-    double *alpha_MH;
+        
     double *prop_sd;
     int *attempt;
     int *accept;
@@ -121,13 +118,11 @@ typedef struct popdata{
     int Ns;      // number of stimuli (or events)
     int non_parm; // canonical HRF = 0, non-parm B-SPlINE = 1
     int knots; // number of bspline bases
-    int CI_len;
     double ED;
     SUB *sub;
     double *beta;  // population level effects, (Ncov*Nb*Ns)
     double *re_rep_prec; //replicate level random effects
     double *re_prec; // sub level random effects, (Ns)x(Ns) diagonal
-    double *CI_percent;
     char **covnames;
     FILE *fout_reprec;
     FILE *fout_re_rep_prec;

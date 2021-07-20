@@ -24,7 +24,7 @@ end
 output_file = fullfile(output_path, 'seed.dat');
 fid = fopen(output_file, 'w+');
 if (fid ~= -1)
-    fprintf(fid, '%i%i %i%i %i\n', randi([0, intmax], 5, 1));
+    fprintf(fid, '%i %i %i\n', randi([0, intmax], 3, 1));
     success = true;
 else
     warning("Error opening " + convertCharsToStrings(output_file));

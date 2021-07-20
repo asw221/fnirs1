@@ -8,8 +8,6 @@
 #include "fNIRS.h"
 
 double M;
-int DEBUG = 0;  // 1 = debug, 0 = no debug
-int TVAR_FLAG = 1; // 1 = TVAR, 0 = simple AR
 int PREC = 64;
 sDLM *dlmStruc;
 int maxP = 50;
@@ -17,7 +15,6 @@ int maxDLM;
 int MAX_ITER = 7500;
 int BURN_IN = 2500;
 int nthd_sys = 1;
-int max_knots = 100;
 FILE *flog,*fseed;
 int PPP;
 
@@ -36,7 +33,7 @@ int main (int argc, const char * argv[]) {
     void load_config_info(POP *,const char *,unsigned long *seed);
     void load_data_structs(POP *,int,unsigned long *);
     void mcmc(POP *pop,unsigned long *seed);
-    void compute_stats(POP *pop,const double *cred_int,const int,const int,const int);   
+    void compute_stats(POP *pop,const double cred_int,const int,const int);   
     
 	M = exp(-PREC*log(2.0));  /* PREC should be set to the compiler precisions 32 or 64 bit */
 
@@ -73,7 +70,7 @@ int main (int argc, const char * argv[]) {
     free(S);
     
     load_config_info(pop,argv[1],seed);
-
+ 
     load_data_structs(pop,PPP,seed);
 /*** CALL MCMC ***/
     fprintf(flog,"ENTERING MCMC\n");fflush(NULL);
@@ -81,8 +78,7 @@ int main (int argc, const char * argv[]) {
     fprintf(flog,"EXITING MCMC\n");fflush(NULL);
 /*****************/
 
-    compute_stats(pop,(const double *)pop->CI_percent,(const int)pop->CI_len,(const int)MAX_ITER,(const int)BURN_IN);   
-
+    compute_stats(pop,0.95,(const int)MAX_ITER,(const int)BURN_IN);    
     for (int isub=0;isub<pop->N_SUBS;isub++) {
         SUB *sub = &(pop->sub[isub]);
         for (int irep=0;irep<sub->N_REPS;irep++) {

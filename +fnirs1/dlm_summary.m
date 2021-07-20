@@ -25,6 +25,9 @@ classdef dlm_summary
         Samples;       % MCMC samples from main analysis
         StdErrors;     % Standard error of each Estimate
     end
+    properties (Dependent)
+        paramnames;
+    end
     properties (Access = private)
         Decimals;            % Max decimal places to display
         DescripPrintWidth;   % Max number of Descriptions characters to print
@@ -37,6 +40,9 @@ classdef dlm_summary
         IntervalPrintWidth;  % Max width of interval characters to display
         PrintWidth;          % Max number of characters to print for display
         StarsCuttoffs;       % Cuttoff bounds for displaying asterisks
+    end
+    properties (Hidden, SetAccess = private)
+        Contrasts;     % Set of added contrasts (as a matrix)
     end
     methods
         function obj = dlm_summary()
@@ -67,6 +73,8 @@ classdef dlm_summary
                 % -1's for the spaces
             obj.PrintWidth = 80;  % not counting asterisks
             obj.StarsCuttoffs = [0.95, 0.99, 0.999];
+            
+            obj.Contrasts = NaN(0, 0);
         end
         function obj = add_contrast(obj, C)
             con = fnirs1.contrast(C);
@@ -105,6 +113,10 @@ classdef dlm_summary
                     obj(i).Intervals = [Q; obj(i).Intervals];
                     obj(i).StdErrors = [std(BcHat)'; ...
                         obj(i).StdErrors];
+                    %
+                    % New feature: only add contrasts to saved lists in
+                    % cases where contrast dim matches obj(i).Samples
+                    obj(i).Contrasts = [ obj(i).Contrasts, con.Vectors ];
                 end
             else
                 % --- More files are needed -------------------------------
@@ -187,6 +199,49 @@ classdef dlm_summary
                     end
                 end
             end
+        end
+        function tbl = credint(obj, levels, varargin)
+            % Retrieve Bayesian posterior credible intervals for parameter
+            % estimates.
+            %
+            % Usage:
+            % credint(obj, [0.8, 0.9, 0.95])  % 80%, 90%, 95% Intervals
+            % credint(obj, [0.8, 0.9], 9)    % Intervals for 9th channel
+            % credint(obj, [0.8, 0.9], 9, 3) % Show intervals to 3 decimals
+            %
+            if (nargin <= 3)
+                digits = 3;
+            else
+                digits = max(fix(varargin{2}), 1);
+            end
+            if (nargin <= 2)
+                channel = 1;
+            else
+                channel = max(fix(varargin{1}), 1);
+            end
+            levels = max(min(levels, 1), 0);
+            qs = interval2quantile(levels);  % fnirs1 private function
+            levelname = strsplit(deblank( ...
+                sprintf('%.1f%% ', levels * 100)), ' ')';
+            samples = obj(channel).Samples;
+            pnames = obj(channel).paramnames(1:size(samples, 2));
+            if ~isempty(obj(channel).Contrasts)
+                con = fnirs1.contrast(obj(channel).Contrasts, pnames);
+                samples = [ samples, samples * con.Vectors ];
+                pnames = [ pnames; cellstr(con) ];
+            end
+            p = size(samples, 2);
+            cis = cell(p, numel(levels));
+            format = sprintf('(%%.%df, %%.%df)', digits, digits);
+            for j = 1:size(qs, 2)
+                q = quantile(samples, qs(:, j))';
+                for i = 1:size(q, 1)
+                    cis{i, j} = sprintf(format, q(i, 1), q(i, 2));
+                end
+            end
+            tbl = array2table(cis);
+            tbl.Properties.VariableNames = levelname;
+            tbl.Properties.RowNames = pnames;
         end
         function disp(obj)
             for j = 1:length(obj)
@@ -281,6 +336,12 @@ classdef dlm_summary
                 end
             end
         end
+        function value = get.paramnames(obj)
+            % Get model parameter names. Returns cellstr
+            value = obj(1).Descriptions( ...
+                ~fnirs1.utils.regexpl(obj(1).Descriptions, '^Contrast: '));
+            value = erase(value, 'Population Effect: ');
+        end
         function G = geweke(obj)
             G = table();
             if ~isempty(obj)
@@ -357,9 +418,7 @@ classdef dlm_summary
         end
         function N = parameter_names(obj)
             % Return cellstr of model parameter names
-            I = ~fnirs1.utils.regexpl(obj(1).Descriptions, '^Contrast: ');
-            N = erase(obj(1).Descriptions(I), ...
-                'Population Effect: ');
+            N = obj.paramnames;
         end
         function obj = parse_log_directory(obj, log_dir)
             % Assign object properties from log files
@@ -496,6 +555,9 @@ classdef dlm_summary
                     '_beta.log');
                 obj.Descriptions = cellstr(string(bn) + subjCoefNames);
             end
+            
+            % New add: storage for contrast vectors
+            obj.Contrasts = zeros(size(obj.Samples, 2), 0);
         end
         function H = plot(obj)
             % Faceted plot of participants' data and the fitted lines
@@ -524,14 +586,25 @@ classdef dlm_summary
             end
             for i = 1:numel(Y.data)
                 subplot(M, N, i);
-                plot(1:numel(Y.data(i).data), Y.data(i).data, '-k');
+                tsp = plot(1:numel(Y.data(i).data), Y.data(i).data, ...
+                    'LineWidth', 1.6);
+                tsp.Color = [0.1, 0.1, 0.1, 0.2];
                 hold on
                 xlim([1, numel(Y.data(i).data)]);
                 ylim(yrng);
-                plot(1:numel(fitted.data(i).data), ...
-                    fitted.data(i).data, '-r');
-                xlabel('Timepoint');
-                ylabel(upper(obj(1).Outcome));
+                fp = plot(1:numel(fitted.data(i).data), ...
+                    fitted.data(i).data, '-m', 'LineWidth', 1.1);
+                fp.Color = [0.8, 0, 0.8, 0.6];
+                if ( i >= ((numel(Y.data) - N + 1)) )
+                    xlabel('Timepoint');
+                else
+                    set(gca, 'XTickLabel', []);
+                end
+                if ( rem(i, N) == 1 )
+                    ylabel(upper(obj(1).Outcome));
+                else
+                    set(gca, 'YTickLabel', []);
+                end
                 title(strrep(fitted.data(i).what, '_', ' '));
             end
         end
@@ -572,6 +645,7 @@ classdef dlm_summary
                 ylim(1.02 * yrng);
                 xlabel('Normal Quantiles');
                 ylabel('Residual Quantiles');
+                title(strrep(Y.data(i).what, '_', ' '));
             end
         end
         function obj = read_from_file(obj, file)
@@ -826,6 +900,7 @@ classdef dlm_summary
                 ylim(yrng);
                 xlabel('Timepoint');
                 ylabel([upper(obj(1).Outcome) ' Residual']);
+                title(strrep(Y.data(i).what, '_', ' '));
             end
         end
         function obj = set.Nickname(obj, nname)
@@ -845,7 +920,7 @@ classdef dlm_summary
             % return table of the estimates or standard errors. For
             % example, if D is an fnirs1.dlm_summary object,
             % >> table(D)              % returns table of Estimates
-            % >> table(D, 'Std.Err.')  % returns table of standard errors
+            % >> table(D, 'StdError')  % returns table of standard errors
             % >> table(D, 'ZStat')     % returns table of z statistics
             %
             prop = 'Estimates';
@@ -859,10 +934,10 @@ classdef dlm_summary
                         strcmpi(varargin{1}, 'StdErrors') || ...
                         strcmpi(varargin{1}, 'SE'))
                     prop = 'StdErrors';
-                elseif (strcmpi(varargin{1}, 'T') || ...
+                elseif (strcmpi(varargin{1}, 'ZStat') || ...
                         strcmpi(varargin{1}, 'Z') || ...
                         strcmpi(varargin{1}, 'TStat') || ...
-                        strcmpi(varargin{1}, 'ZStat') || ...
+                        strcmpi(varargin{1}, 'T') || ...
                         strcmpi(varargin{1}, 'Intensity'))
                     prop = 'ZStat';
                 elseif ~(strcmpi(varargin{1}, 'Estimate') || ...

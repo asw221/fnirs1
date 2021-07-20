@@ -82,17 +82,6 @@ long rmultinomial(double *prob,long len,unsigned long *seed)
  return len-1;
 }
 
-long rmultinomial2(long double *cdf,long len,unsigned long *seed)
-{
- long i;
- long double y;
-
- y = kiss(seed);
- for (i=0;i<len;i++)
-   if (y < cdf[i])
-     return i;
- return len-1;
-}
 
 double runif_atob(unsigned long *seed,double a,double b)
 {

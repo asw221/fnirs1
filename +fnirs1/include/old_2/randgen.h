@@ -4,7 +4,6 @@ int runiform_n(int,unsigned long *);
 void permute_sample(double *,int,unsigned long *); 
 void permute_sample_int(int *,int,unsigned long *); 
 long rmultinomial(double *,long,unsigned long *);
-long rmultinomial2(long double *cdf,long len,unsigned long *seed);
 double runif_atob(unsigned long *,double,double);
 double rexp(double,unsigned long *);
 double sgamma(double,unsigned long *);

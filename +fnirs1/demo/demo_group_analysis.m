@@ -15,11 +15,11 @@ data_files = reshape(data_files, numel(data_files), 1);
 demo = readtable('~/Box/BayesianDataAnalysis/EN_CH_MA_PA_Tasks_NEW/Demographicinfo.xlsx');
 
 % Subset the data and add a categorical column 
-demo = demo(demo.ID > 3000, :);
+% demo = demo(demo.ID > 3000, :);
 demo = fnirs1.expand_table_conditions(demo, 2, 'Task');
 
 % Check files are in the correct order:
-[ok, mismatch] = fnirs1.check_filenames_id(data_files, demo.ID);
+% [ok, mismatch] = fnirs1.check_filenames_id(data_files, demo.ID);
 
 % Center the non-categorical columns:
 cdemo = fnirs1.utils.center(demo);
@@ -35,7 +35,7 @@ fit = fnirs1.dlm(data_files, ...
     'GroupData', cdemo, ...
     'GroupFormula', 'ID ~ Task * Cond + LWIDraw + Age', ...
     'DownSampleRate', 10, ...
-    'SpecificChannels', 9:12, ...
+    'SpecificChannels', 1, ...
     'McmcControl', fnirs1.mcmc_control(1000, 2));
 
 

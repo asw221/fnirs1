@@ -35,10 +35,8 @@ function summaries = dlm(varargin)
 %
 % Other valid Options are:  (see fnirs1.specify_model for full details)
 %   'DownSampleRate'      - (numeric, integer)
-%   'GroupCovariates'     - (numeric; optional)
-%   'GroupCovariateNames' - (cellstr; optional)
-%   'GroupData'           - (table; optional)
-%   'GroupFormula'        - (char; optional unless 'GroupData' is provided)
+%   'GroupData'           - (table)
+%   'GroupFormula'        - (char)
 %   'McmcControl'         - (fnirs1.mcmc_control)
 %   'OutcomeType'         - (char)
 %   'SpecificChannels'    - (numeric, integer)
@@ -64,63 +62,36 @@ function summaries = dlm(varargin)
 %
 
 summaries = [];
+originaldir = pwd;
 
-% Organize list of setup files or call specify_model to do this
-% automatically
-if (nargin == 1)
-    setupFiles = varargin{1};
-    if (ischar(setupFiles) || isstring(setupFiles))
-        if (strcmp(setupFiles, ''))
-            % if empty char is the only input parameter, assume the user
-            % wants to specify the model with specify_model('') (with
-            % defaults)
-            setupFiles = fnirs1.list_setup_files(fnirs1.specify_model(''));
-        else
-            setupFiles = cellstr(setupFiles);
-        end
-    elseif ~iscellstr(setupFiles)
-        error("When called with with only one input, FNIRS1.DLM " + ...
-            " assumes the argument is a (set of) path(s) to " + ...
-            "'setup.dat' file(s)");
-    end
-else
-    setupFiles = fnirs1.list_setup_files(fnirs1.specify_model(varargin{:}));
-end
-
-success = false(size(setupFiles));
+setups = parse_inputs(varargin{:});
+success = false(size(setups));
 
 % loop over setup files and fit models given in each
-original_dir = pwd;
-parfor i = 1:length(setupFiles)
-    if (exist(setupFiles{i}, 'file') ~= 2)
+parfor i = 1:length(setups)
+    if (exist(setups{i}, 'file') ~= 2)
         error('''%s'' not found or is not a valid model setup file', ...
-            setupFiles{i});
+            setups{i});
     end
-    setupPath = fileparts(setupFiles{i});
-    cd(setupPath);
-    if (exist(fullfile(setupPath, 'log'), 'dir'))
-        remove_folder_and_contents(fullfile(setupPath, 'log'));
+    setuppath = fileparts(setups{i});
+    cd(setuppath);
+    if (exist(fullfile(setuppath, 'log'), 'dir'))
+        remove_folder_and_contents(fullfile(setuppath, 'log'));
+        % ^^ fnirs1 private function
     end
     
-    try 
-        % fnirs1.fitDlm(basename(setupFiles{i}));
-        % Create and execute SYSTEM fnrisdlm command
-        cmd = sprintf('%s %s', ...
-            fullfile(fnirs1.home, 'include', 'fnirsdlm'), ...
-            fnirs1.utils.basename(setupFiles{i}));
-        status = system(cmd, '-echo');
-        success(i) = ~logical(status);
-        %
-    catch ME
-        warning(ME.identifier, 'fnirs1.dlm: caught error: %s', ME.message);
+    try success(i) = fitdlm(setups{i});
+    catch me
+        warning(me.identifier, 'fnirs1.dlm: caught error: %s', me.message);
     end
 end
 
-cd(original_dir);
+cd(originaldir);
+
 if (any(success))
-    topSetupDir = fileparts(fileparts(setupFiles{1}));
-    if (contains(pwd, topSetupDir))
-        cd(fullfile(topSetupDir, '..'));
+    topsetupdir = fileparts(fileparts(setups{1}));
+    if (contains(pwd, topsetupdir))
+        cd(fullfile(topsetupdir, '..'));
         warning('Changing directory to %s', pwd);
     end
     
@@ -128,12 +99,13 @@ if (any(success))
     %  - loops over successful output files and read results summaries
     %  - zips directories with successful output files
     %  - removes un-zipped directories with successful output files
-    loginfo = dir(fullfile(topSetupDir, '*', 'log', 'Parameter_Estimates.log'));
+    loginfo = dir(fullfile(topsetupdir, '*', 'log', ...
+        'Parameter_Estimates.log'));
     if ~isempty(loginfo)
         summaries = repmat(fnirs1.dlm_summary, size(loginfo));
         for i = 1:length(loginfo)
             % read summary info and set nicknames
-            setupDir = fileparts(loginfo(i).folder);
+            setupdir = fileparts(loginfo(i).folder);
             % summaries(i) = summaries(i).read_from_file(...
             %    fullfile(loginfo(i).folder, loginfo(i).name));
             % summaries(i).Nickname = fnirs1.utils.basename(setupDir);
@@ -142,15 +114,57 @@ if (any(success))
             
             % zip successful folders and delete un-zipped versions
             try
-                zip(setupDir, setupDir);
+                zip(setupdir, setupdir);
                 % Remove the unzipped copy
-                remove_folder_and_contents(setupDir);
-            catch ME
-                warning(ME.message);
+                remove_folder_and_contents(setupdir);
+            catch me
+                warning(me.message);
             end
         end
     else
         warning('Cannot locate ''Parameter_Estimates.log'' file(s)');
     end
 end
+end
+
+
+
+% Auxiliary functions
+% -------------------
+
+function setupfiles = parse_inputs(varargin)
+% Parse input arguments. Forward to fnirs1.specify_model if necessary.
+% Returns list of setup.dat files
+if (nargin == 1)
+    if isa(varargin{1}, 'fnirs1.modelspec')
+        setupfiles = varargin{1}.setupfiles;
+    elseif (ischar(varargin{1}) || isstring(varargin{1}))
+        if (strcmp(varargin{1}, ''))
+            % if empty char is the only input parameter, assume the user
+            % wants to specify the model with specify_model('') (with
+            % defaults)
+            spec = fnirs1.specify_model('');
+            setupfiles = spec.setupfiles;
+        else
+            setupfiles = cellstr(varargin{1});
+        end
+    elseif ~iscellstr(varargin{1})
+        error("When called with with only one input, FNIRS1.DLM " + ...
+            "takes either an fnirs1.modelspec argument or a " + ...
+            "(set of) path(s) to 'setup.dat' file(s)");
+    end
+else
+    spec = fnirs1.specify_model(varargin{:});
+    setupfiles = spec.setupfiles;
+end
+end
+
+
+function success = fitdlm(setupfile)
+% Create and execute SYSTEM fnrisdlm command
+cmd = sprintf('%s %s', ...
+    fullfile(fnirs1.home, 'include', 'fnirsdlm'), ...
+    fnirs1.utils.basename(setupfile));
+status = system(cmd, '-echo');
+success = ~logical(status);
 end

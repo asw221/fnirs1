@@ -63,7 +63,7 @@ classdef mixed_effects_design
            if (~isempty(catVars))
                catCats = cell(size(catVars));
                for i = 1:numel(catVars)
-                   catCats{i} = categories(tbl.(catVars{i}));
+                   catCats{i} = categories(categorical(tbl.(catVars{i})));
                end
                obj.Categories = cell2struct(catCats, catVars);
            end

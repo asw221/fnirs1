@@ -85,25 +85,16 @@ void compute_credible_interval(double *interval,const double prob,double *x,cons
     compute_quantile(&interval[1],(const double)phigh,(const double *)x,len);
 }
 
-void compute_prob_greater_zero(double *prb,double *x,const int len) {
-    *prb = 0;
-    
-    for (int i=0;i<len;i++)
-        *prb += (double)(x[i] > 0);
-    *prb /= (double)len;
- 
-}
-
-void compute_stats(POP *pop,const double *cred_int,const int CI_len,const int Max_Iter,const int Burn_In) {
+void compute_stats(POP *pop,const double cred_int,const int Max_Iter,const int Burn_In) {
     int N,Niter;
     double *X,*Xt,mean,sd;
-    double *interval,prb;
+    double interval[2];
     FILE *fparmest,*fout;
     void transpose(double *At,double *A,const int nrow,const int ncol);
 
     fparmest = fopen("./log/Parameter_Estimates.log","w");
     Niter = Max_Iter - Burn_In;
-    interval = (double *)calloc(2*CI_len,sizeof(double));
+
     if (pop->GRP) {
         fout = fopen("./log/pop_beta.log","r");
 
@@ -122,20 +113,12 @@ void compute_stats(POP *pop,const double *cred_int,const int CI_len,const int Ma
         
         for (int i=0;i<pop->Ncov;i++) {
             compute_mean_sd(&mean,&sd,(const double *)&Xt[i*Max_Iter+Burn_In],(const int)Niter);
-            for (int j=0;j<CI_len;j++)
-                compute_credible_interval(&interval[j*2],cred_int[j],&Xt[i*Max_Iter+Burn_In],(const int)Niter);
-            compute_prob_greater_zero(&prb,&Xt[i*Max_Iter+Burn_In],(const int)Niter);
+            compute_credible_interval(interval,cred_int,&Xt[i*Max_Iter+Burn_In],(const int)Niter);
             if (i == 0)
                 fprintf(fparmest,"Pop Level Parameters: \n");
             fprintf(fparmest,"\t%30s mean = %.3lf\tsd = %.3lf\n",pop->covnames[i],mean,sd);
-            for (int j=0;j<CI_len;j++) {
-                int percent = (int)(cred_int[j]*100.);
-                fprintf(fparmest,"\t%30s %2d%% Cred.Int. = (%.3lf, %.3lf)*\n"," ",percent,interval[j*2],interval[j*2+1]);
-            }
-            fprintf(fparmest,"\t%30s Prob > 0  = %.3lf\n"," ",prb);
-            fprintf(fparmest,"\t%30s Prob <= 0 = %.3lf\n\n"," ",1.-prb);
+            fprintf(fparmest,"\t%30s 95%% Cred.Int. = (%.3lf, %.3lf)*\n\n"," ",interval[0],interval[1]);
         }
-        fflush(fparmest);
         free(Xt);
     }
 
@@ -148,16 +131,8 @@ void compute_stats(POP *pop,const double *cred_int,const int CI_len,const int Ma
     Xt = (double *)calloc((Max_Iter)*pop->Nb*pop->Ns,sizeof(double));
     for (int isub=0;isub<pop->N_SUBS;isub++) {
         for (int irep=0;irep<pop->sub[isub].N_REPS;irep++) {
- 
-            char *token;
             
             CC = strcpy(CC,pop->sub[isub].rep[irep].dataname);
-            token = strtok(CC,"/");
-            while(token != NULL ) {
-                CC = strcpy(CC,token);
-                token = strtok(NULL,"/");
-            }
-           
             CC = strtok(CC,".");
             S = strcpy(S,"./log/");
             S = strcat(S,CC);
@@ -182,9 +157,8 @@ void compute_stats(POP *pop,const double *cred_int,const int CI_len,const int Ma
                 for (int j=0;j<pop->Nb;j++) {
                     ii = Max_Iter*(j*pop->Ns + istim)+Burn_In;
                     compute_mean_sd(&mean,&sd,(const double *)&Xt[ii],(const int)Niter);
-                    for (int k=0;k<CI_len;k++)
-                        compute_credible_interval(&interval[k*2],cred_int[k],&Xt[ii],(const int)Niter);
-                    compute_prob_greater_zero(&prb,&Xt[ii],(const int)Niter);
+                    compute_credible_interval(interval,cred_int,&Xt[ii],(const int)Niter);
+ //                   ii += Max_Iter;
                     
                     if (j==0)
                         fprintf(fparmest,"\n\t\t\tHRF\n\n");
@@ -195,13 +169,7 @@ void compute_stats(POP *pop,const double *cred_int,const int CI_len,const int Ma
            
                     fprintf(fparmest,"\t\t\t\tmean = %.3lf\tsd = %.3lf\n",mean,sd);
   
-                    for (int k=0;k<CI_len;k++) {
-                        int percent = (int)(cred_int[j]*100.);
-                        fprintf(fparmest,"\t\t\t\t%2d%% Cred.Int. = (%.3lf, %.3lf)*\n",percent,interval[k*2],interval[k*2+1]);
-                    }
-                    fprintf(fparmest,"\t\t\t\tProb > 0  = %.3lf\n",prb);
-                    fprintf(fparmest,"\t\t\t\tProb <= 0 = %.3lf\n\n",1.-prb);
-                    fprintf(fparmest,"\n");
+                    fprintf(fparmest,"\t\t\t\t95%% Cred.Int. = (%.3lf, %.3lf)*\n",interval[0],interval[1]);
                 }
             }
         }
@@ -233,26 +201,18 @@ void compute_stats(POP *pop,const double *cred_int,const int CI_len,const int Ma
                         fprintf(fparmest,"\n\t\t\tHRF Temporal Derivative\n\n");
                     
                    compute_mean_sd(&mean,&sd,(const double *)&Xt[(istim*N+j)*Max_Iter+Burn_In],(const int)Niter);
-                   for (int k=0;k<CI_len;k++)
-                        compute_credible_interval(&interval[k*2],cred_int[k],&Xt[(istim*N+j)*Max_Iter+Burn_In],(const int)Niter);
-                   compute_prob_greater_zero(&prb,&Xt[(istim*N+j)*Max_Iter+Burn_In],(const int)Niter);
+                   compute_credible_interval(interval,cred_int,&Xt[(istim*N+j)*Max_Iter+Burn_In],(const int)Niter);
  
                    fprintf(fparmest,"\t\t\t\tHb0:\tmean = %.3lf\tsd = %.3lf\n",mean,sd);
 
-                    for (int k=0;k<CI_len;k++) {
-                        int percent = (int)(cred_int[j]*100.);
-                        fprintf(fparmest,"\t\t\t\t%2d%% Cred.Int. = (%.3lf, %.3lf)*\n",percent,interval[k*2],interval[k*2+1]);
-                    }
-                    fprintf(fparmest,"\t\t\t\tProb > 0  = %.3lf\n",prb);
-                    fprintf(fparmest,"\t\t\t\tProb <= 0 = %.3lf\n\n",1.-prb);
-                    fprintf(fparmest,"\n");
+                   fprintf(fparmest,"\t\t\t\t    \t95%% Cred.Int. = (%.3lf, %.3lf)*\n\n",interval[0],interval[1]);
                 }   
             }
         }
     }
     fprintf(fparmest,"\n\n95%% Cred.Int. based on the 0.025 and 0.975 quantiles.\nQuantiles estimated using the default method in R version 3.4.3.\n");
     fclose(fparmest);
-    free(interval);
+  
     free(Xt);
     free(X);
     free(CC);
