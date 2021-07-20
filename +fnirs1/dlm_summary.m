@@ -230,6 +230,7 @@ classdef dlm_summary
                 samples = [ samples, samples * con.Vectors ];
                 pnames = [ pnames; cellstr(con) ];
             end
+            [~, ok] = unique(pnames, 'stable');
             p = size(samples, 2);
             cis = cell(p, numel(levels));
             format = sprintf('(%%.%df, %%.%df)', digits, digits);
@@ -239,9 +240,9 @@ classdef dlm_summary
                     cis{i, j} = sprintf(format, q(i, 1), q(i, 2));
                 end
             end
-            tbl = array2table(cis);
+            tbl = array2table(cis(ok, :));
             tbl.Properties.VariableNames = levelname;
-            tbl.Properties.RowNames = pnames;
+            tbl.Properties.RowNames = pnames(ok);
         end
         function disp(obj)
             for j = 1:length(obj)
