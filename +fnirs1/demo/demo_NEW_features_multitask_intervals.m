@@ -34,7 +34,7 @@ end
 
 
 % Create demographic information table with task condition label. You
-% likely already have demographic info in a table you can read in
+% likely already have demographic info in a table you can just read in
 n = size(subjects, 1);
 id = reshape([(1:n)', (1:n)']', [2*n, 1]);
 pa = reshape([zeros([n 1]), ones([n, 1])]', [2*n, 1]);
@@ -66,6 +66,9 @@ fit = fnirs1.dlm(spec);
 
 %% Posterior credible intervals
 %
+
+% Add some contrasts:
+fit = fit.add_contrast([-1, 0, 1]);
 
 credint(fit, [0.8, 0.9, 0.95, 0.99])  % 80%, ..., 99% credible intervals
 
