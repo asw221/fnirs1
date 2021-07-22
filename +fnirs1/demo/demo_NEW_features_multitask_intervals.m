@@ -44,6 +44,9 @@ demog = table(id, pa, 'VariableNames', {'ID', 'PAtask'});
 % constant within patient should be repeated for subject replicate rows.
 % See fnirs1.expand_table_conditions for a convenience method to repeat
 % rows of a table if needed
+% 
+%   (!) Data from a given participant should always appear in continguous
+%       rows in your demographic table
 %
 
 
