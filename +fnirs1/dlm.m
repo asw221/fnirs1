@@ -68,25 +68,14 @@ setups = parse_inputs(varargin{:});
 success = false(size(setups));
 
 % loop over setup files and fit models given in each
-parfor i = 1:length(setups)
-    if (exist(setups{i}, 'file') ~= 2)
-        error('''%s'' not found or is not a valid model setup file', ...
-            setups{i});
-    end
-    setuppath = fileparts(setups{i});
-    cd(setuppath);
-    if (exist(fullfile(setuppath, 'log'), 'dir'))
-        remove_folder_and_contents(fullfile(setuppath, 'log'));
-        % ^^ fnirs1 private function
-    end
-    
-    try success(i) = fitdlm(setups{i});
-    catch me
-        warning(me.identifier, 'fnirs1.dlm: caught error: %s', me.message);
+if (numel(setups) == 1)
+    success = execute_setup(setups{1});
+else
+    parfor i = 1:numel(setups)
+        success(i) = execute_setups(setups{i});
     end
 end
-
-cd(originaldir);
+cd(originaldir);  % execute_setups (below) changes directory
 
 if (any(success))
     topsetupdir = fileparts(fileparts(setups{1}));
@@ -123,6 +112,7 @@ if (any(success))
         end
     else
         warning('Cannot locate ''Parameter_Estimates.log'' file(s)');
+        warning('Program may have terminated early. Check printed info');
     end
 end
 end
@@ -157,6 +147,10 @@ else
     spec = fnirs1.specify_model(varargin{:});
     setupfiles = spec.setupfiles;
 end
+if isempty(setupfiles)
+    error('dlm:parse_inputs:emptysetup', ...
+        'Cannot infer setup file location');
+end
 end
 
 
@@ -167,4 +161,23 @@ cmd = sprintf('%s %s', ...
     fnirs1.utils.basename(setupfile));
 status = system(cmd, '-echo');
 success = ~logical(status);
+end
+
+
+function success = execute_setup(setupfile)
+if (exist(setupfile, 'file') ~= 2)
+    error('''%s'' not found or is not a valid model setup file', ...
+        setupfile);
+end
+setuppath = fileparts(setupfile);
+cd(setuppath);
+if (exist(fullfile(setuppath, 'log'), 'dir'))
+    remove_folder_and_contents(fullfile(setuppath, 'log'));
+    % ^^ fnirs1 private function
+end
+%
+try success = fitdlm(setupfile);
+catch me
+    warning(me.identifier, 'fnirs1.dlm: caught error: %s', me.message);
+end
 end

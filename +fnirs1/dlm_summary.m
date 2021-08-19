@@ -205,7 +205,7 @@ classdef dlm_summary
             % estimates.
             %
             % Usage:
-            % credint(obj, [0.8, 0.9, 0.95])  % 80%, 90%, 95% Intervals
+            % credint(obj, [0.8, 0.9, 0.95]) % 80%, 90%, 95% Intervals
             % credint(obj, [0.8, 0.9], 9)    % Intervals for 9th channel
             % credint(obj, [0.8, 0.9], 9, 3) % Show intervals to 3 decimals
             %
