@@ -42,6 +42,7 @@ classdef dlm_summary
         StarsCuttoffs;       % Cuttoff bounds for displaying asterisks
     end
     properties (Hidden, SetAccess = private)
+        Burnin;
         Contrasts;     % Set of added contrasts (as a matrix)
     end
     methods
@@ -74,6 +75,7 @@ classdef dlm_summary
             obj.PrintWidth = 80;  % not counting asterisks
             obj.StarsCuttoffs = [0.95, 0.99, 0.999];
             
+            obj.Burnin = 0;
             obj.Contrasts = NaN(0, 0);
         end
         function obj = add_contrast(obj, C)
@@ -451,9 +453,21 @@ classdef dlm_summary
             obj.Level = 0.95;
             qs = [(1 - obj.Level) / 2, obj.Level + (1 - obj.Level) / 2];
             
+            % Find burnin
+            setupfile = fullfile(obj.LogFileDir, '..', 'setup.dat');
+            if exist(setupfile, 'file')
+                setupinfo = fnirs1.utils.read_setup(setupfile);
+                if isfield(setupinfo, 'BURN_IN')
+                    obj.Burnin = setupinfo.BURN_IN;
+                end
+            end
+            
             if (obj.GroupAnalysis)
                 obj.Samples = load(...
                     fullfile(obj.LogFileDir, 'pop_beta.log'), '-ascii');
+                if (obj.Burnin < size(obj.Samples, 1))
+                    obj.Samples = obj.Samples((obj.Burnin+1):end, :);
+                end
                 
                 obj.Descriptions = fnirs1.utils.read_whole_file(...
                     fullfile(fileparts(obj.LogFileDir), 'names.txt'));
@@ -518,6 +532,9 @@ classdef dlm_summary
             else
                 % Parse single subject model
                 obj.Samples = load(obj.LogFiles{1}, '-ascii');
+                if (obj.Burnin < size(obj.Samples, 1))
+                    obj.Samples = obj.Samples((obj.Burnin+1):end, :);
+                end
                 
                 meanParamDescrip = fnirs1.utils.read_whole_file(...
                     fullfile(fileparts(obj.LogFileDir), 'names.txt'));
